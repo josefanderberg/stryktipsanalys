@@ -1,5 +1,5 @@
 import { useApp } from '../store.jsx'
-import { MATCHES, DEMO_EXPERTS, SIGNS } from '../lib/data.js'
+import { ROUND, DEMO_EXPERTS, SIGNS } from '../lib/data.js'
 import { expertFilled, filledCount } from '../lib/model.js'
 import { Card, Note, Cta, DetailBtn, Coupon, CouponRow } from '../components/ui.jsx'
 
@@ -68,7 +68,7 @@ export default function Experter() {
       </div>
 
       <Coupon title={`EXPERTRAD ${ei + 1}`} sub={`${filledCount(s.experts, ei)}/13`}>
-        {MATCHES.map((m, mi) => (
+        {ROUND.matches.map((m, mi) => (
           <CouponRow
             key={mi}
             nr={mi + 1}

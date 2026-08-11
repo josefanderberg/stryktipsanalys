@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'   # var 6:e timme – håller omgångsdata färsk
+    - cron: '15 16-23 * * 6' # tätare på lördagar när resultaten kommer
 
 permissions:
   contents: read
@@ -24,6 +27,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Hämta aktuell omgång från Svenska Spel
+        run: node scripts/fetch-omgang.mjs || echo "Hämtning misslyckades – använder incheckad data"
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

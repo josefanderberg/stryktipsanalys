@@ -4,9 +4,17 @@ Mobilanpassad prototyp för ett analysverktyg för Stryktipset, byggd med **Reac
 
 **Live:** https://josefanderberg.github.io/stryktipsanalys/
 
+## Riktig data
+
+Omgångsdata (13 matcher, Svenska folket, odds) hämtas från **Svenska Spels öppna API** av
+`scripts/fetch-omgang.mjs`, som GitHub Actions kör vid varje deploy och enligt schema
+(var 6:e timme, tätare på lördagar). Resultatet hämtas samma väg när omgången är färdigspelad.
+Historiken och modellprocenten är däremot fortfarande demonstrationsvärden tills en riktig
+databas byggts upp. Inofficiell prototyp utan koppling till Svenska Spel.
+
 ## Flödet
 
-1. **Ny omgång** – hämta omgångens 13 matcher med Svenska folket och oddsprocent (demodata i prototypen).
+1. **Ny omgång** – hämta omgångens 13 matcher med Svenska folket och oddsprocent från Svenska Spel.
 2. **Expertrad 1–6** – fyll i sex expertrader, en i taget, med klickbara 1/X/2-tecken (halv- och helgarderingar stöds).
 3. **Expertmönster** – raderna normaliseras per match så att ordningen på experterna räknas bort (t.ex. `1×2 · 1X×3 · X2×1`).
 4. **Differens** – Svenska folket jämförs med oddsprocenten per tecken; totaldifferensen placerar matchen i ett differensintervall.
@@ -34,8 +42,6 @@ Varje push till `main` bygger och deployar automatiskt till GitHub Pages via Git
 
 ## Nästa steg
 
-- Automatisk import av aktuell Stryktipsomgång (kräver kontroll av Svenska Spels användarvillkor och datakällor).
-- Automatisk resultatimport efter avslutad omgång.
 - Riktig databas i backend i stället för demogenererad historik.
 - Statistisk kalibrering av modellens vikter mot verkliga utfall.
 - Systembyggare som optimerar radbygget mot vald budget.

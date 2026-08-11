@@ -1,5 +1,5 @@
 import { useApp } from './store.jsx'
-import { ROUND_LABEL } from './lib/data.js'
+import { ROUND } from './lib/data.js'
 import { allFilled, expertFilled } from './lib/model.js'
 import Start from './views/Start.jsx'
 import Experter from './views/Experter.jsx'
@@ -64,7 +64,7 @@ function BottomBar() {
   const saveRound = () => {
     if (s.saved) return
     const hits = s.results.filter((r, i) => s.rad[i].includes(r)).length
-    setDb({ rounds: [...db.rounds, { datum: '2026-08-15', matcher: 13, ratt: hits }] })
+    setDb({ rounds: [...db.rounds, { datum: ROUND.date || '–', matcher: 13, ratt: hits }] })
     set({ saved: true })
     toast('13 datapunkter sparade i databasen')
   }
@@ -175,7 +175,9 @@ export default function App() {
     <>
       <header className="bg-navy text-white px-3.5 pt-4 pb-3 sticky top-0 z-20">
         <h1 className="m-0 text-[21px] font-bold">Stryktipsanalys</h1>
-        <p className="m-0 mt-1 text-xs opacity-85">Prototyp · demodata · {ROUND_LABEL}</p>
+        <p className="m-0 mt-1 text-xs opacity-85">
+          {s.roundData ? ROUND.label : 'Prototyp · hämta omgången under Start'}
+        </p>
       </header>
       <Steps />
       <main className="max-w-[760px] mx-auto px-2.5 pt-1.5 pb-[108px]">

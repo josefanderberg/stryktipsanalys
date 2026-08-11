@@ -1,11 +1,8 @@
 export const SIGNS = ['1', 'X', '2']
 export const COMBO_ORDER = ['1', 'X', '2', '1X', '12', 'X2', '1X2']
 export const INTERVALS = ['0–9', '10–19', '20–29', '30–39', '40+']
-export const ROUND_DATE = '2026-08-15'
-export const ROUND_LABEL = 'Lördag 15 augusti 2026'
-
-// Demodata för omgången: Svenska folket % och oddsprocent per 1/X/2
-export const MATCHES = [
+// Demodata som reserv om riktig data inte kan hämtas
+export const DEMO_MATCHES = [
   { name: 'Nottingham – Arsenal',   folk: [20, 26, 54], odds: [23, 27, 50] },
   { name: 'Chelsea – Brentford',    folk: [71, 17, 12], odds: [58, 24, 18] },
   { name: 'Leeds – Fulham',         folk: [44, 30, 26], odds: [40, 30, 30] },
@@ -36,3 +33,29 @@ export const DEMO_RESULTS = [2, 2, 0, 0, 0, 1, 0, 2, 1, 1, 0, 1, 0]
 
 export const emptyExperts = () =>
   Array.from({ length: 6 }, () => Array.from({ length: 13 }, () => []))
+
+// Aktuell omgång – börjar som demo och byts ut när riktig data hämtats
+// (public/data/omgang.json, bakad av scripts/fetch-omgang.mjs via GitHub Actions).
+export const ROUND = {
+  source: 'demo',
+  drawNumber: null,
+  label: 'Demo-omgång · Lördag 15 augusti 2026',
+  date: '2026-08-15',
+  updated: null,
+  matches: DEMO_MATCHES,
+  result: null,
+  prevResult: null,
+}
+
+export function setRound(data) {
+  if (!data || !Array.isArray(data.matches) || data.matches.length !== 13) return false
+  ROUND.source = 'live'
+  ROUND.drawNumber = data.drawNumber
+  ROUND.label = data.label || `Stryktipset omgång ${data.drawNumber}`
+  ROUND.date = data.date || ''
+  ROUND.updated = data.updated || null
+  ROUND.matches = data.matches
+  ROUND.result = data.result || null
+  ROUND.prevResult = data.prevResult || null
+  return true
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../store.jsx'
-import { MATCHES, SIGNS } from '../lib/data.js'
+import { ROUND, SIGNS } from '../lib/data.js'
 import {
   allFilled, comboKey, diffOf, modelFor, recFor, relStars, signStr, starStr,
 } from '../lib/model.js'
@@ -18,7 +18,7 @@ export default function MatchDetail() {
   if (!filled) return null
 
   const mi = s.detail
-  const m = MATCHES[mi]
+  const m = ROUND.matches[mi]
   const d = diffOf(mi)
   const { score, iv, ih, h, weights } = modelFor(s.experts, mi)
   const r = recFor(s.experts, mi)

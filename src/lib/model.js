@@ -1,4 +1,4 @@
-import { SIGNS, COMBO_ORDER, INTERVALS, MATCHES } from './data.js'
+import { SIGNS, COMBO_ORDER, INTERVALS, ROUND } from './data.js'
 
 /* ---------- Grundläggande hjälpfunktioner ---------- */
 
@@ -18,7 +18,7 @@ export function patternOf(experts, mi) {
 
 // Differens: Svenska folket − oddsprocent, per tecken + totalsumma av absolutvärden
 export function diffOf(mi) {
-  const m = MATCHES[mi]
+  const m = ROUND.matches[mi]
   const d = m.folk.map((f, i) => f - m.odds[i])
   return { d, total: d.reduce((s, x) => s + Math.abs(x), 0) }
 }
@@ -76,7 +76,7 @@ const HIST_CACHE = new Map()
 export function historyFor(experts, mi) {
   const pattern = patternOf(experts, mi)
   const iv = intervalOf(diffOf(mi).total)
-  const key = `${pattern}|${iv}`
+  const key = `${ROUND.drawNumber ?? 'demo'}|${pattern}|${iv}`
   if (HIST_CACHE.has(key)) return HIST_CACHE.get(key)
 
   let h
@@ -150,7 +150,7 @@ export function modelFor(experts, mi) {
   const h = historyFor(experts, mi)
   const iv = intervalOf(diffOf(mi).total)
   const ih = h.intervals.find((x) => x.label === iv) || { n: 0, p: h.base }
-  const odds = MATCHES[mi].odds
+  const odds = ROUND.matches[mi].odds
   const sim = h.sim[2].p
   // Prototypvikter – kalibreras mot verkliga resultat när databasen växer.
   // Differenshistoriken viktas ned när underlaget är litet.
@@ -166,7 +166,7 @@ export function modelFor(experts, mi) {
 
 export function recFor(experts, mi) {
   const { score } = modelFor(experts, mi)
-  const folk = MATCHES[mi].folk
+  const folk = ROUND.matches[mi].folk
   const ord = [0, 1, 2].sort((a, b) => score[b] - score[a])
   let type, signs
   if (score[ord[0]] >= 60 && score[ord[0]] - score[ord[1]] >= 25) {
@@ -202,7 +202,7 @@ export function highlights(experts) {
   let v
 
   v = -1
-  MATCHES.forEach((_, i) => {
+  ROUND.matches.forEach((_, i) => {
     const s = modelFor(experts, i).score
     const t = Math.max(...s)
     if (t > v) {
@@ -212,7 +212,7 @@ export function highlights(experts) {
   })
 
   v = -1
-  MATCHES.forEach((m, i) => {
+  ROUND.matches.forEach((m, i) => {
     const s = modelFor(experts, i).score
     ;[0, 1, 2].forEach((k) => {
       const g = s[k] - m.folk[k]
@@ -224,7 +224,7 @@ export function highlights(experts) {
   })
 
   v = -1
-  MATCHES.forEach((m, i) => {
+  ROUND.matches.forEach((m, i) => {
     const s = modelFor(experts, i).score
     ;[0, 1, 2].forEach((k) => {
       const g = s[k] - m.folk[k]
@@ -236,7 +236,7 @@ export function highlights(experts) {
   })
 
   v = -1
-  MATCHES.forEach((m, i) => {
+  ROUND.matches.forEach((m, i) => {
     const s = modelFor(experts, i).score
     ;[0, 1, 2].forEach((k) => {
       const g = m.folk[k] - s[k]
@@ -248,7 +248,7 @@ export function highlights(experts) {
   })
 
   v = -1
-  MATCHES.forEach((_, i) => {
+  ROUND.matches.forEach((_, i) => {
     const mx = Math.max(...votesOf(experts, i))
     if (mx > v) {
       v = mx
@@ -257,7 +257,7 @@ export function highlights(experts) {
   })
 
   v = 2
-  MATCHES.forEach((_, i) => {
+  ROUND.matches.forEach((_, i) => {
     const mx = Math.max(...votesOf(experts, i))
     if (mx < v) {
       v = mx
@@ -271,7 +271,7 @@ export function highlights(experts) {
 /* ---------- Radbygge efter budget ---------- */
 
 export function buildRad(experts, budget) {
-  const per = MATCHES.map((_, i) => {
+  const per = ROUND.matches.map((_, i) => {
     const { score } = modelFor(experts, i)
     const ord = [0, 1, 2].sort((a, b) => score[b] - score[a])
     return { ord, score }

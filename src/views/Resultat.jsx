@@ -1,10 +1,10 @@
 import { useApp } from '../store.jsx'
-import { MATCHES, SIGNS, DEMO_RESULTS } from '../lib/data.js'
+import { ROUND, SIGNS } from '../lib/data.js'
 import { signStr } from '../lib/model.js'
 import { Card, Note, Cta, Summary, Banner, NrBadge } from '../components/ui.jsx'
 
 export default function Resultat() {
-  const { s, set, show, toast } = useApp()
+  const { s, set, show, fetchResults } = useApp()
 
   if (!s.rad) {
     return (
@@ -28,25 +28,20 @@ export default function Resultat() {
   return (
     <>
       <Card>
-        <h2 className="m-0 mb-2 text-[17px] font-bold">Omgång avslutad</h2>
+        <h2 className="m-0 mb-2 text-[17px] font-bold">Resultat</h2>
         <Note className="mt-0">
-          <b className="text-[#17643a]">✓ Resultat tillgängligt</b> (demo – i en senare version
-          kontrollerar systemet automatiskt efter avslutad omgång)
+          {ROUND.source === 'live'
+            ? `Resultatet hämtas från Svenska Spel när omgången är färdigspelad (${ROUND.date}).`
+            : 'Demoläge – knappen fyller i demoresultat.'}
         </Note>
-        <Cta
-          tone="blue"
-          onClick={() => {
-            set({ results: DEMO_RESULTS.slice(), saved: false })
-            toast('Resultat hämtade (demo)')
-          }}
-        >
+        <Cta tone="blue" onClick={fetchResults}>
           HÄMTA RESULTAT
         </Cta>
         <Note className="mt-2">Du kan också rätta manuellt genom att trycka på tecknen nedan.</Note>
       </Card>
 
       <Card>
-        {MATCHES.map((m, i) => {
+        {ROUND.matches.map((m, i) => {
           const res = s.results[i]
           const hit = res !== null && s.rad[i].includes(res)
           return (

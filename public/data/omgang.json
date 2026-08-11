@@ -1,0 +1,210 @@
+{
+ "updated": "2026-08-11T20:35:57.475Z",
+ "drawNumber": 4966,
+ "label": "Stryktipset v 33, stänger 2026-08-15 15:59",
+ "date": "2026-08-15",
+ "closeTime": "2026-08-15T15:59:00+02:00",
+ "matches": [
+  {
+   "name": "Sheffield U – Birmingham",
+   "folk": [
+    52,
+    22,
+    26
+   ],
+   "odds": [
+    38,
+    28,
+    34
+   ],
+   "start": "2026-08-15T18:30:00+02:00"
+  },
+  {
+   "name": "Bristol City – Millwall",
+   "folk": [
+    47,
+    26,
+    27
+   ],
+   "odds": [
+    39,
+    28,
+    33
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Charlton – Derby",
+   "folk": [
+    42,
+    26,
+    32
+   ],
+   "odds": [
+    35,
+    30,
+    35
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Middlesbrough – Lincoln",
+   "folk": [
+    60,
+    19,
+    21
+   ],
+   "odds": [
+    72,
+    18,
+    10
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Norwich – West Bromwich",
+   "folk": [
+    46,
+    26,
+    28
+   ],
+   "odds": [
+    46,
+    28,
+    26
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Portsmouth – Queens Park Rangers",
+   "folk": [
+    44,
+    25,
+    31
+   ],
+   "odds": [
+    44,
+    28,
+    28
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Stoke – Swansea",
+   "folk": [
+    49,
+    25,
+    26
+   ],
+   "odds": [
+    39,
+    29,
+    32
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Blackpool – Wycombe",
+   "folk": [
+    51,
+    26,
+    23
+   ],
+   "odds": [
+    36,
+    29,
+    35
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Bradford – Peterborough ",
+   "folk": [
+    55,
+    22,
+    23
+   ],
+   "odds": [
+    56,
+    25,
+    19
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Burton – Stevenage",
+   "folk": [
+    44,
+    27,
+    29
+   ],
+   "odds": [
+    40,
+    31,
+    29
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Cambridge – Wigan",
+   "folk": [
+    46,
+    25,
+    29
+   ],
+   "odds": [
+    40,
+    29,
+    31
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Leyton Orient – Sheffield W",
+   "folk": [
+    41,
+    25,
+    34
+   ],
+   "odds": [
+    33,
+    28,
+    39
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  },
+  {
+   "name": "Plymouth – Stockport",
+   "folk": [
+    49,
+    27,
+    24
+   ],
+   "odds": [
+    44,
+    27,
+    29
+   ],
+   "start": "2026-08-15T16:00:00+02:00"
+  }
+ ],
+ "result": null,
+ "prevResult": {
+  "drawNumber": 4965,
+  "outcomes": [
+   "2",
+   "1",
+   "2",
+   "1",
+   "1",
+   "X",
+   "2",
+   "2",
+   "1",
+   "2",
+   "1",
+   "X",
+   "2"
+  ]
+ }
+}

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useApp } from '../store.jsx'
-import { MATCHES, SIGNS, ROUND_DATE } from '../lib/data.js'
+import { ROUND, SIGNS } from '../lib/data.js'
 import { allFilled, buildRad, radCost, radCounts, recFor, signStr } from '../lib/model.js'
 import { Card, SecTitle, Note, Cta, DetailBtn, Coupon, CouponRow, NrBadge } from '../components/ui.jsx'
 
@@ -43,8 +43,8 @@ export default function Rad() {
 
   const copyRad = () => {
     const txt =
-      `STRYKTIPSET ${ROUND_DATE} – MIN RAD\n` +
-      MATCHES.map((m, i) => `${i + 1}. ${m.name}: ${signStr(s.rad[i])}`).join('\n') +
+      `STRYKTIPSET ${ROUND.date} – MIN RAD\n` +
+      ROUND.matches.map((m, i) => `${i + 1}. ${m.name}: ${signStr(s.rad[i])}`).join('\n') +
       `\nSystempris: ${cost} kr · Spikar ${c.spik} · Halva ${c.halv} · Hela ${c.hel}`
     const done = () => toast('Raden kopierad – klistra in hos Svenska Spel')
     const fallback = () => {
@@ -90,7 +90,7 @@ export default function Rad() {
 
       <Card>
         <h2 className="m-0 mb-2 text-[17px] font-bold">MIN RAD – {s.budget} KR</h2>
-        {MATCHES.map((m, i) => {
+        {ROUND.matches.map((m, i) => {
           const r = recFor(s.experts, i)
           const sel = s.rad[i]
           const tag =
@@ -171,7 +171,7 @@ export default function Rad() {
       <Card>
         <SecTitle>Kupongvy</SecTitle>
         <Coupon title="STRYKTIPSET" sub={`${cost} rader`}>
-          {MATCHES.map((m, i) => (
+          {ROUND.matches.map((m, i) => (
             <CouponRow
               key={i}
               nr={i + 1}

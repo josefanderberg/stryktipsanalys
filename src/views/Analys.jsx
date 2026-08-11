@@ -1,5 +1,5 @@
 import { useApp } from '../store.jsx'
-import { MATCHES, SIGNS, DEMO_EXPERTS } from '../lib/data.js'
+import { ROUND, SIGNS, DEMO_EXPERTS } from '../lib/data.js'
 import { allFilled, highlights, recFor, signStr } from '../lib/model.js'
 import { Card, Note, Cta, Summary } from '../components/ui.jsx'
 
@@ -51,7 +51,7 @@ export default function Analys() {
       <Summary title="KUPONGANALYS" items={items} />
 
       <div className="rounded-[13px] overflow-hidden bg-white shadow-[0_2px_8px_#0001] mb-[11px]">
-        {MATCHES.map((m, i) => {
+        {ROUND.matches.map((m, i) => {
           const r = recFor(s.experts, i)
           const badges = [
             hl.spik.mi === i ? '🔥' : '',
