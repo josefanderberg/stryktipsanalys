@@ -28,7 +28,7 @@ function Steps() {
     : id === 'resultat' ? s.saved
     : false
   return (
-    <nav className="flex gap-1.5 overflow-x-auto px-2.5 pt-2.5 pb-1 max-w-[760px] mx-auto">
+    <nav className="no-scrollbar flex gap-1.5 overflow-x-auto px-2.5 pt-2.5 pb-1 max-w-[760px] mx-auto">
       {STEPS.map((st) => (
         <button
           key={st.id}

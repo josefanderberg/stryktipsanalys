@@ -13,20 +13,49 @@
   --color-night: #17212b;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: Arial, ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
 button {
   font-family: inherit;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input {
+  font-size: 16px; /* hindrar iOS Safari från att zooma vid fokus */
+}
+
+/* Horisontellt scrollbara rader utan synlig scrollbar (stegrad, expertväxlare) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tabeller scrollar i sitt eget kort i stället för att bryta rader */
+.tbl-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tbl-wrap::-webkit-scrollbar {
+  display: none;
 }
 
 .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.tbl th, .tbl td { padding: 8px 5px; border-bottom: 1px solid var(--color-line); text-align: center; }
+.tbl th, .tbl td { padding: 8px 5px; border-bottom: 1px solid var(--color-line); text-align: center; white-space: nowrap; }
 .tbl th { color: var(--color-muted); font-size: 11.5px; }
 .tbl th:first-child, .tbl td:first-child { text-align: left; }
 .tbl tr.hl { background: #eaf6ee; font-weight: bold; }

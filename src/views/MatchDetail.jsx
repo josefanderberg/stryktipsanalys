@@ -45,14 +45,14 @@ export default function MatchDetail() {
           Match {mi + 1}: {m.name}
         </h2>
         <SecTitle>1 · Experternas val</SecTitle>
-        <table className="tbl">
+        <div className="tbl-wrap"><table className="tbl">
           <thead>
             <tr>{s.experts.map((_, i) => <th key={i}>E{i + 1}</th>)}</tr>
           </thead>
           <tbody>
             <tr>{s.experts.map((e, i) => <td key={i}><b>{comboKey(e[mi])}</b></td>)}</tr>
           </tbody>
-        </table>
+        </table></div>
         <SecTitle className="mt-3">2 · Exakt expertmönster (ordningen borträknad)</SecTitle>
         <Chip>{h.pattern}</Chip>
       </Card>
@@ -74,7 +74,7 @@ export default function MatchDetail() {
 
       <Card>
         <SecTitle>4 · Dagens differens</SecTitle>
-        <table className="tbl">
+        <div className="tbl-wrap"><table className="tbl">
           <thead>
             <tr><th></th><th>1</th><th>X</th><th>2</th></tr>
           </thead>
@@ -83,7 +83,7 @@ export default function MatchDetail() {
             <tr><td>Oddsprocent</td>{m.odds.map((x, i) => <td key={i}>{x}%</td>)}</tr>
             <tr><td><b>Diff</b></td>{d.d.map((x, i) => <td key={i}><b>{x > 0 ? '+' : ''}{x}</b></td>)}</tr>
           </tbody>
-        </table>
+        </table></div>
         <p className="mt-2 mb-0">
           <Chip tone="blue">Total differens = {d.total} · Intervall {iv}</Chip>
         </p>
@@ -91,7 +91,7 @@ export default function MatchDetail() {
 
       <Card>
         <SecTitle>5 · Historik för mönstret, uppdelad efter differens</SecTitle>
-        <table className="tbl">
+        <div className="tbl-wrap"><table className="tbl">
           <thead>
             <tr><th>Differens</th><th>Matcher</th><th>1</th><th>X</th><th>2</th></tr>
           </thead>
@@ -104,7 +104,7 @@ export default function MatchDetail() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <Note className="mt-2">
           ⭐ Dagens match ligger här. Generellt ger mönstret {h.base[0]}/{h.base[1]}/{h.base[2]} –
           inom dagens differensintervall har utfallet historiskt varit {ih.p[0]}/{ih.p[1]}/{ih.p[2]}{' '}
@@ -119,7 +119,7 @@ export default function MatchDetail() {
         </DetailBtn>
         {showSim && (
           <>
-            <table className="tbl mt-2">
+            <div className="tbl-wrap mt-2"><table className="tbl">
               <thead>
                 <tr><th>Likhet</th><th>Matcher</th><th>1</th><th>X</th><th>2</th></tr>
               </thead>
@@ -132,7 +132,7 @@ export default function MatchDetail() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <Note className="mt-2">
               Används främst när underlaget för det exakta mönstret är litet. Exakt mönster väger
               alltid tyngre än liknande mönster.
@@ -143,7 +143,7 @@ export default function MatchDetail() {
           {showHist ? 'Dölj historiska matcher' : 'Visa historiska matcher'}
         </DetailBtn>
         {showHist && (
-          <table className="tbl mt-2">
+          <div className="tbl-wrap mt-2"><table className="tbl">
             <thead>
               <tr><th>Datum</th><th>Likhet</th><th>Diff</th><th>Resultat</th></tr>
             </thead>
@@ -154,7 +154,7 @@ export default function MatchDetail() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
 

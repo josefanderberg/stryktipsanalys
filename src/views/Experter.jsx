@@ -48,7 +48,7 @@ export default function Experter() {
 
   return (
     <Card>
-      <div className="flex gap-1.5 overflow-x-auto pb-1.5 mb-2">
+      <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1.5 mb-2">
         {s.experts.map((_, i) => (
           <button
             key={i}

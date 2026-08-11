@@ -1,7 +1,7 @@
 import { useApp } from '../store.jsx'
 import { ROUND } from '../lib/data.js'
 import { diffOf } from '../lib/model.js'
-import { Card, SecTitle, Note, Cta, Banner } from '../components/ui.jsx'
+import { Card, SecTitle, Note, Cta, Banner, NrBadge } from '../components/ui.jsx'
 
 export default function Start() {
   const { s, fetchRound } = useApp()
@@ -44,33 +44,24 @@ export default function Start() {
       {s.fetched && (
         <Card>
           <SecTitle>Omgångens matcher</SecTitle>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Match</th>
-                <th>Folket</th>
-                <th>Odds %</th>
-                <th>Diff</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ROUND.matches.map((m, i) => {
-                const d = diffOf(i)
-                return (
-                  <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{m.name}</td>
-                    <td>{m.folk.join(' / ')}</td>
-                    <td>{m.odds.join(' / ')}</td>
-                    <td>
-                      <b>{d.total}</b>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          {ROUND.matches.map((m, i) => {
+            const d = diffOf(i)
+            return (
+              <div
+                key={i}
+                className="flex items-center gap-2.5 py-2 border-b border-line last:border-b-0"
+              >
+                <NrBadge n={i + 1} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] leading-snug">{m.name}</div>
+                  <div className="text-[11px] text-muted mt-0.5">
+                    Folket {m.folk.join('/')} · Odds {m.odds.join('/')} · Diff{' '}
+                    <b className="text-ink">{d.total}</b>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
           <Note className="mt-2">Diff = summan av |Svenska folket − oddsprocent| per tecken.</Note>
         </Card>
       )}

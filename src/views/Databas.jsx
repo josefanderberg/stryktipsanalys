@@ -17,7 +17,7 @@ export default function Databas() {
 
       <Card>
         <SecTitle>Sparade omgångar</SecTitle>
-        <table className="tbl">
+        <div className="tbl-wrap"><table className="tbl">
           <thead>
             <tr><th>Datum</th><th>Matcher</th><th>Rätt</th><th>Status</th></tr>
           </thead>
@@ -31,7 +31,7 @@ export default function Databas() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <Note className="mt-2">
           Per match sparas: datum · match · sex expertrader · normaliserat expertmönster · Svenska
           folket 1/X/2 · oddsprocent 1/X/2 · differensprofil · differensintervall · faktiskt
