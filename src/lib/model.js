@@ -268,26 +268,62 @@ export function highlights(experts) {
   return hl
 }
 
-/* ---------- Radbygge efter budget ---------- */
+/* ---------- Strategier och radbygge efter budget ---------- */
 
-export function buildRad(experts, budget) {
-  const per = ROUND.matches.map((_, i) => {
-    const { score } = modelFor(experts, i)
-    const ord = [0, 1, 2].sort((a, b) => score[b] - score[a])
-    return { ord, score }
-  })
-  const chosen = per.map((p) => [p.ord[0]])
+export const STRATEGIES = [
+  { key: 'adaptive', name: '★ Adaptiv', desc: 'Väljer signal match för match utifrån historiskt underlag och signalstyrka.' },
+  { key: 'hist', name: '◷ Historiskt mönster', desc: 'Följer baslinjen från exakt expertmönster oavsett dagens förutsättningar.' },
+  { key: 'diff', name: '◎ Mönster + differens', desc: 'Följer exakt mönster justerat med dagens differensprofil.' },
+  { key: 'model', name: '▥ Sammanvägd modell', desc: 'Följer modellens procentbedömning.' },
+]
+
+// Teckenval ur en sannolikhetsfördelning: spik, halvgardering eller helgardering
+export function signsFromDist(p) {
+  const ord = [0, 1, 2].sort((a, b) => p[b] - p[a])
+  if (p[ord[0]] >= 60 && p[ord[0]] - p[ord[1]] >= 25) return [ord[0]]
+  if (p[ord[0]] < 40) return [0, 1, 2]
+  return [ord[0], ord[1]].sort((a, b) => a - b)
+}
+
+// De fyra signalerna för en match
+export function signalsFor(experts, mi) {
+  const { score, ih, h } = modelFor(experts, mi)
+  return {
+    hist: { p: h.base, n: h.total, label: 'Historiskt mönster' },
+    diff: { p: ih.p, n: ih.n, label: 'Mönster + differens' },
+    sim: { p: h.sim[2].p, n: h.sim[2].n, label: 'Liknande mönster' },
+    model: { p: score, n: ih.n, label: 'Sammanvägd modell' },
+  }
+}
+
+// Adaptiv strategi: välj per match den signal som har starkast stöd,
+// där topprocenten viktas med hur stort det historiska underlaget är.
+export function adaptiveChoice(experts, mi) {
+  const sig = signalsFor(experts, mi)
+  const cand = [
+    { key: 'hist', ...sig.hist, strength: Math.max(...sig.hist.p) * Math.min(1, sig.hist.n / 60) },
+    { key: 'diff', ...sig.diff, strength: Math.max(...sig.diff.p) * Math.min(1, sig.diff.n / 30) },
+    { key: 'model', ...sig.model, strength: Math.max(...sig.model.p) * 0.85 },
+  ]
+  cand.sort((a, b) => b.strength - a.strength)
+  return cand[0]
+}
+
+// Bygg en budgetanpassad rad utifrån en fördelning per match
+function buildRadFromDists(dists, budget) {
+  const per = dists.map((p) => ({ ord: [0, 1, 2].sort((a, b) => p[b] - p[a]), p }))
+  const chosen = per.map((x) => [x.ord[0]])
   const cost = () => chosen.reduce((c, s) => c * s.length, 1)
   for (;;) {
     let best = -1
     let bestGain = -1
-    per.forEach((p, i) => {
+    per.forEach((x, i) => {
       const k = chosen[i].length
       if (k >= 3) return
       const factor = k === 1 ? 2 : 1.5
       if (cost() * factor > budget) return
       // Föredra halvgarderingar framför helgarderingar
-      const gain = p.score[p.ord[k]] - (k === 2 ? 12 : 0)
+      const gain = x.p[x.ord[k]] - (k === 2 ? 12 : 0)
       if (gain > bestGain) {
         bestGain = gain
         best = i
@@ -297,6 +333,18 @@ export function buildRad(experts, budget) {
     chosen[best].push(per[best].ord[chosen[best].length])
   }
   return chosen.map((c) => c.slice().sort((a, b) => a - b))
+}
+
+// Alla fyra strategiernas rader, byggda för samma budget
+export function strategyRows(experts, budget) {
+  const sig = ROUND.matches.map((_, i) => signalsFor(experts, i))
+  const adaptive = ROUND.matches.map((_, i) => adaptiveChoice(experts, i))
+  return {
+    adaptive: { rad: buildRadFromDists(adaptive.map((a) => a.p), budget), sources: adaptive },
+    hist: { rad: buildRadFromDists(sig.map((x) => x.hist.p), budget) },
+    diff: { rad: buildRadFromDists(sig.map((x) => x.diff.p), budget) },
+    model: { rad: buildRadFromDists(sig.map((x) => x.model.p), budget) },
+  }
 }
 
 export const radCost = (rad) => (rad ? rad.reduce((c, s) => c * s.length, 1) : 0)

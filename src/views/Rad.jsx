@@ -1,15 +1,42 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../store.jsx'
-import { ROUND, SIGNS } from '../lib/data.js'
-import { allFilled, buildRad, radCost, radCounts, recFor, signStr } from '../lib/model.js'
+import { ROUND, SIGNS, STRATEGY_PERF } from '../lib/data.js'
+import {
+  allFilled, radCost, radCounts, recFor, signStr, strategyRows, STRATEGIES,
+} from '../lib/model.js'
 import { Card, SecTitle, Note, Cta, DetailBtn, Coupon, CouponRow, NrBadge } from '../components/ui.jsx'
+
+const STRAT_COLOR = {
+  adaptive: 'text-[#258345]',
+  hist: 'text-ink',
+  diff: 'text-[#e34e32]',
+  model: 'text-[#6f45b9]',
+}
+const SRC_SHORT = { hist: 'Hist. mönster', diff: 'Mönster+diff', model: 'Modell' }
+
+// Teckentagg i strategijämförelsen: grön spik, gul halvgardering, röd helgardering
+function Tag({ signs }) {
+  const cls =
+    signs.length === 1
+      ? 'bg-[#dff2e5] text-[#20703e]'
+      : signs.length === 2
+        ? 'bg-[#fff0c8] text-[#9c6700]'
+        : 'bg-[#fde0dd] text-[#bd3228]'
+  return (
+    <span className={`inline-block min-w-[34px] text-center px-1.5 py-1 rounded-[5px] font-black text-[12px] ${cls}`}>
+      {signStr(signs)}
+    </span>
+  )
+}
 
 export default function Rad() {
   const { s, set, show, toast } = useApp()
+  const [onlyDiff, setOnlyDiff] = useState(false)
   const filled = allFilled(s.experts)
+  const strat = filled ? strategyRows(s.experts, s.budget) : null
 
   useEffect(() => {
-    if (filled && !s.rad) set({ rad: buildRad(s.experts, s.budget) })
+    if (filled && !s.rad) set({ rad: strategyRows(s.experts, s.budget).adaptive.rad })
   }, [filled, s.rad]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!filled) {
@@ -26,6 +53,30 @@ export default function Rad() {
   const cost = radCost(s.rad)
   const c = radCounts(s.rad)
   const over = cost > s.budget
+
+  // Enighet mellan strategierna, match för match
+  const rowsOf = (key) => strat[key].rad
+  const perMatch = ROUND.matches.map((_, i) => {
+    const sets = STRATEGIES.map((st) => signStr(rowsOf(st.key)[i]))
+    return { distinct: new Set(sets).size, same: new Set(sets).size === 1 }
+  })
+  const agree = perMatch.filter((x) => x.same).length
+  const conflicts = perMatch
+    .map((x, i) => ({ ...x, i }))
+    .filter((x) => !x.same)
+    .sort((a, b) => b.distinct - a.distinct)
+    .slice(0, 4)
+
+  // Adaptiva radens källfördelning
+  const srcCounts = strat.adaptive.sources.reduce((acc, src) => {
+    acc[src.key] = (acc[src.key] || 0) + 1
+    return acc
+  }, {})
+
+  const useRad = (key, name) => {
+    set({ rad: strat[key].rad.map((r) => r.slice()), saved: false })
+    toast(`Raden bytt till ${name}`)
+  }
 
   const radToggle = (mi, si) => {
     const sel = s.rad[mi]
@@ -73,7 +124,7 @@ export default function Rad() {
           {[96, 144, 288, 432, 576].map((b) => (
             <button
               key={b}
-              onClick={() => set({ budget: b, rad: buildRad(s.experts, b), saved: false })}
+              onClick={() => set({ budget: b, rad: null, saved: false })}
               className={`rounded-[9px] px-3 py-2 font-bold text-[13px] border-2 ${
                 s.budget === b ? 'bg-royal border-royal text-white' : 'bg-white border-line text-[#153b61]'
               }`}
@@ -83,10 +134,128 @@ export default function Rad() {
           ))}
         </div>
         <Note className="mt-2">
-          Systemet föreslår spikar, halv- och helgarderingar utifrån modellbedömningen så att
-          systempriset ryms i budgeten (1 kr per rad). Ändra sedan valfria tecken nedan.
+          Alla strategier bygger sin rad för samma budget (1 kr per rad), så att de går att jämföra
+          rättvist. Din egen rad kan du sedan ändra tecken för tecken.
         </Note>
       </Card>
+
+      <h2 className="m-0 mb-2 mt-1 text-[17px] font-bold">Jämför strategier</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-[11px]">
+        {STRATEGIES.map((st) => {
+          const rad = rowsOf(st.key)
+          const sc = radCounts(rad)
+          return (
+            <div key={st.key} className="bg-white rounded-[13px] p-[13px] shadow-[0_2px_8px_#0001]">
+              <h3 className={`m-0 mb-1 text-[14px] font-black ${STRAT_COLOR[st.key]}`}>
+                {st.name}
+                {st.key === 'adaptive' && (
+                  <span className="ml-2 align-middle inline-block bg-[#e7f5eb] text-[#1c6c3b] rounded-[12px] px-2 py-0.5 text-[11px]">
+                    Rekommenderad
+                  </span>
+                )}
+              </h3>
+              <b className="text-[13px]">
+                {sc.spik} spikar · {sc.halv} halva · {sc.hel} hela · {radCost(rad)} kr
+              </b>
+              <p className="my-1.5 text-[12.5px] text-[#445465] leading-relaxed">{st.desc}</p>
+              {st.key === 'adaptive' && (
+                <div className="bg-[#edf7ef] rounded-lg p-2 text-[11.5px] mb-1.5">
+                  Denna kupong:{' '}
+                  {Object.entries(srcCounts).map(([k, n]) => `${SRC_SHORT[k]} ${n}`).join(' · ')}
+                </div>
+              )}
+              <DetailBtn onClick={() => useRad(st.key, st.name)}>Använd denna rad</DetailBtn>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="border border-[#cbd9e6] bg-[#f9fbfd] rounded-[10px] p-3 mb-[11px] text-[13px]">
+        <b>Strategierna är överens i {agree} av 13 matcher</b>
+        <span className="text-muted"> · {13 - agree} matcher kan förändra kupongen.</span>
+      </div>
+
+      <Card>
+        <div className="flex justify-between items-center gap-2 flex-wrap">
+          <h2 className="m-0 text-[15px] font-bold">Jämför rader</h2>
+          <button
+            onClick={() => setOnlyDiff(!onlyDiff)}
+            className="border border-line bg-white rounded-lg px-2.5 py-2 text-[12px] font-bold text-[#153b61]"
+          >
+            {onlyDiff ? 'Visa alla matcher' : 'Visa endast där vi skiljer oss'}
+          </button>
+        </div>
+        <div className="tbl-wrap mt-2">
+          <table className="tbl" style={{ minWidth: 560 }}>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Match</th>
+                <th>★ Adaptiv</th>
+                <th>Historiskt</th>
+                <th>Mönster+diff</th>
+                <th>Modell</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ROUND.matches.map((m, i) => {
+                if (onlyDiff && perMatch[i].same) return null
+                return (
+                  <tr key={i}>
+                    <td>{!perMatch[i].same ? '🔥 ' : ''}{i + 1}</td>
+                    <td>{m.name}</td>
+                    {STRATEGIES.map((st) => (
+                      <td key={st.key}><Tag signs={rowsOf(st.key)[i]} /></td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {conflicts.length > 0 && (
+        <>
+          <h2 className="m-0 mb-2 text-[15px] font-bold">Där strategierna skiljer sig mest</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-[11px]">
+            {conflicts.map(({ i }) => {
+              const src = strat.adaptive.sources[i]
+              const top = Math.max(...src.p)
+              return (
+                <div key={i} className="bg-white rounded-[13px] p-[13px] shadow-[0_2px_8px_#0001]">
+                  <h3 className="m-0 mb-2 text-[13px] font-black">
+                    <span className="text-[#e7452d]">🔥</span> {i + 1}. {ROUND.matches[i].name}
+                  </h3>
+                  {STRATEGIES.map((st) => (
+                    <div
+                      key={st.key}
+                      className="flex justify-between items-center gap-2 py-1 border-b border-[#eef1f3] text-[12px]"
+                    >
+                      <span className={STRAT_COLOR[st.key]}>{st.name}</span>
+                      <Tag signs={rowsOf(st.key)[i]} />
+                    </div>
+                  ))}
+                  <p className="my-2 text-[12px] leading-relaxed">
+                    <b>Varför väljer adaptiva raden {signStr(strat.adaptive.rad[i])}?</b>
+                    <br />
+                    {src.label} har starkast stöd här: {top}% på {SIGNS[src.p.indexOf(top)]}
+                    {src.n ? ` (${src.n} matcher i underlaget)` : ''}.
+                  </p>
+                  <DetailBtn
+                    onClick={() => {
+                      set({ detail: i })
+                      show('match')
+                    }}
+                  >
+                    Visa detaljerad analys →
+                  </DetailBtn>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
 
       <Card>
         <h2 className="m-0 mb-2 text-[17px] font-bold">MIN RAD – {s.budget} KR</h2>
@@ -134,7 +303,7 @@ export default function Rad() {
         })}
 
         <div className="grid grid-cols-4 gap-[7px] mt-2.5">
-          <div className={`rounded-[9px] px-1.5 py-2 text-center text-[11px] ${over ? 'bg-[#fde6e3]' : 'bg-[#e7eef5]'}`}>
+          <div className={`rounded-[9px] px-1.5 py-2 text-center text-[11px] ${over ? 'bg-[#fde0dd]' : 'bg-[#e7eef5]'}`}>
             <b className={`block text-base ${over ? 'text-[#a02c21]' : 'text-navy'}`}>{cost} kr</b>
             <span className="text-muted">Systempris</span>
           </div>
@@ -157,13 +326,8 @@ export default function Rad() {
           </Note>
         )}
 
-        <DetailBtn
-          onClick={() => {
-            set({ rad: buildRad(s.experts, s.budget), saved: false })
-            toast(`Raden optimerad efter ${s.budget} kr`)
-          }}
-        >
-          Optimera om efter budget
+        <DetailBtn onClick={() => useRad('adaptive', '★ Adaptiv')}>
+          Återställ till ★ Adaptiv
         </DetailBtn>
         <Cta tone="blue" onClick={copyRad}>Kopiera rad</Cta>
       </Card>
@@ -181,6 +345,37 @@ export default function Rad() {
             />
           ))}
         </Coupon>
+      </Card>
+
+      <Card>
+        <h2 className="m-0 mb-2 text-[15px] font-bold">Så har strategierna presterat historiskt*</h2>
+        <div className="tbl-wrap">
+          <table className="tbl" style={{ minWidth: 640 }}>
+            <thead>
+              <tr>
+                <th>Strategi</th>
+                <th>Teckentäckning</th>
+                <th>Snitt rätt</th>
+                <th>13 rätt / 1000</th>
+                <th>Omgångar</th>
+                <th>Kommentar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {STRATEGY_PERF.map((r) => (
+                <tr key={r.name} className={r.best ? 'hl' : ''}>
+                  <td>{r.name}</td>
+                  <td>{r.tack}</td>
+                  <td>{r.ratt}</td>
+                  <td>{r.full}</td>
+                  <td>{r.omg}</td>
+                  <td className="!whitespace-normal">{r.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Note className="mt-2">* Demodata i prototypen – fylls på när omgångar sparas i databasen.</Note>
       </Card>
     </>
   )

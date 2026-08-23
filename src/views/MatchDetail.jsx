@@ -3,6 +3,7 @@ import { useApp } from '../store.jsx'
 import { ROUND, SIGNS } from '../lib/data.js'
 import {
   allFilled, comboKey, diffOf, modelFor, recFor, relStars, signStr, starStr,
+  signalsFor, adaptiveChoice, signsFromDist,
 } from '../lib/model.js'
 import { Card, SecTitle, Note, Chip, Cta, DetailBtn, Track } from '../components/ui.jsx'
 
@@ -55,6 +56,49 @@ export default function MatchDetail() {
         </table></div>
         <SecTitle className="mt-3">2 · Exakt expertmönster (ordningen borträknad)</SecTitle>
         <Chip>{h.pattern}</Chip>
+      </Card>
+
+      <Card>
+        <SecTitle>Snabböversikt – fyra signaler</SecTitle>
+        <div className="grid grid-cols-2 gap-2">
+          {(() => {
+            const sig = signalsFor(s.experts, mi)
+            return [
+              { t: 'Exakt expertmönster', d: sig.hist, sub: `${sig.hist.n} historiska matcher` },
+              { t: 'Exakt mönster + dagens diff ⭐', d: sig.diff, sub: `${sig.diff.n} matcher i dagens intervall`, star: true },
+              { t: 'Liknande mönster', d: sig.sim, sub: `${sig.sim.n} matcher` },
+              { t: 'Sammanvägd modell', d: sig.model, sub: 'Viktad sammanvägning' },
+            ].map((b) => (
+              <div
+                key={b.t}
+                className={`rounded-[11px] border p-2.5 ${
+                  b.star ? 'border-[#f4bb42] bg-[#fffdf7]' : 'border-line bg-white'
+                }`}
+              >
+                <h3 className="m-0 mb-2 text-[12px] font-bold leading-snug">{b.t}</h3>
+                <div className="grid grid-cols-3 gap-1 text-center">
+                  {[0, 1, 2].map((k) => (
+                    <div key={k}>
+                      <b className="block text-[17px]">{b.d.p[k]}%</b>
+                      <span className="text-[11px] text-muted">{SIGNS[k]}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-1.5 text-[10.5px] text-muted">{b.sub}</div>
+              </div>
+            ))
+          })()}
+        </div>
+        {(() => {
+          const src = adaptiveChoice(s.experts, mi)
+          return (
+            <div className="mt-2.5 rounded-[10px] bg-[#eaf7ee] text-[#1e6b3b] font-bold p-3 text-[13px] leading-relaxed">
+              ★ Adaptiv rekommendation: {signStr(signsFromDist(src.p))}
+              <br />
+              <span className="font-normal text-[12px]">{src.label} har starkast stöd för den här matchen.</span>
+            </div>
+          )
+        })()}
       </Card>
 
       <Card>

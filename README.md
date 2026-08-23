@@ -20,7 +20,7 @@ databas byggts upp. Inofficiell prototyp utan koppling till Svenska Spel.
 4. **Differens** – Svenska folket jämförs med oddsprocenten per tecken; totaldifferensen placerar matchen i ett differensintervall.
 5. **Matchanalys** i fast ordning: experternas val → exakt mönster → **all historik för mönstret (baslinjen)** → dagens differens → historik uppdelad efter differensintervall (⭐ markerar dagens) → liknande mönster (sekundärt) → **modellbedömning** med underlag och tillförlitlighet → rekommendation.
 6. **Kuponganalys** – starkaste spik 🔥, bästa värdetecken 💎, sannolikaste skräll 💥, farlig favorit ⚠️, störst expertenighet 🤝 och expertoenighet ⚔️.
-7. **Min rad** – välj budget; systemet föreslår spikar, halv- och helgarderingar som ryms i budgeten. Allt kan ändras manuellt. Kupongvy + "Kopiera rad".
+7. **Min rad – strategijämförelse** – fyra strategier bygger var sin rad för samma budget: **★ Adaptiv** (rekommenderad, väljer starkaste signal per match), **◷ Historiskt mönster**, **◎ Mönster + differens** och **▥ Sammanvägd modell**. Jämförelsetabell med 🔥 där strategierna skiljer sig, konfliktkort med förklaringar, enighets­banner och historisk prestanda per strategi. Din egen rad utgår från den adaptiva och kan ändras tecken för tecken. Kupongvy + "Kopiera rad".
 8. **Resultat** – hämta/rätta resultat efter avslutad omgång och **spara i databasen** (13 nya datapunkter per omgång).
 9. **Databas** – sparade omgångar och därför värdet växer med tiden.
 

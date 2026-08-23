@@ -31,6 +31,14 @@ export const DEMO_EXPERTS = [
 // Demoresultat (index i SIGNS) – bl.a. fälls den överstreckade favoriten i match 2
 export const DEMO_RESULTS = [2, 2, 0, 0, 0, 1, 0, 2, 1, 1, 0, 1, 0]
 
+// Historisk prestanda per strategi (demovärden tills databasen byggts upp)
+export const STRATEGY_PERF = [
+  { name: '★ Adaptiv', tack: '64,1%', ratt: '8,3', full: '76,9', omg: 128, note: 'Bäst teckentäckning och flest fullträffar.', best: true },
+  { name: '◷ Historiskt mönster', tack: '59,3%', ratt: '7,6', full: '66,4', omg: 128, note: 'Stabil baslinje.' },
+  { name: '◎ Mönster + differens', tack: '62,5%', ratt: '8,1', full: '71,3', omg: 128, note: 'Bra när differensen tillför information.' },
+  { name: '▥ Sammanvägd modell', tack: '56,7%', ratt: '7,2', full: '61,2', omg: 128, note: 'Hjälper vid svagt historiskt underlag.' },
+]
+
 export const emptyExperts = () =>
   Array.from({ length: 6 }, () => Array.from({ length: 13 }, () => []))
 
