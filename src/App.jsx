@@ -56,7 +56,7 @@ function Steps() {
 }
 
 function BottomBar() {
-  const { s, show, set, toast, db, setDb, newRound } = useApp()
+  const { s, show, set, toast, newRound, saveRound } = useApp()
   const btn = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-go text-white disabled:bg-[#c8d2da] disabled:text-[#f2f5f7]'
   const sec = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-[#e7eef5] text-[#153b61]'
   const filled = allFilled(s.experts)
@@ -67,14 +67,6 @@ function BottomBar() {
       window.scrollTo(0, 0)
     } else show('analys')
   }
-  const saveRound = () => {
-    if (s.saved) return
-    const hits = s.results.filter((r, i) => s.rad[i].includes(r)).length
-    setDb({ rounds: [...db.rounds, { datum: ROUND.date || '–', matcher: 13, ratt: hits }] })
-    set({ saved: true })
-    toast('13 datapunkter sparade i databasen')
-  }
-
   let content
   if (s.view === 'start') {
     content = (

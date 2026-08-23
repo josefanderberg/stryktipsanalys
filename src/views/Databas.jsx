@@ -1,17 +1,46 @@
+import { useEffect, useState } from 'react'
 import { useApp } from '../store.jsx'
 import { Card, SecTitle, Note, Cta, Summary, Banner } from '../components/ui.jsx'
 
 export default function Databas() {
   const { db, newRound, toast } = useApp()
-  const tot = db.rounds.reduce((s, r) => s + r.matcher, 0)
+  // null = laddar · false = gick inte att nå · [] = tomt
+  const [cloud, setCloud] = useState(null)
+  useEffect(() => {
+    let alive = true
+    import('../lib/db.js')
+      .then(({ loadRoundsFromCloud }) => loadRoundsFromCloud())
+      .then((r) => alive && setCloud(r))
+      .catch(() => alive && setCloud(false))
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const cloudRows = Array.isArray(cloud)
+    ? cloud.map((r) => ({
+        datum: r.date || r.datum || '–',
+        spel: r.game === 'europatipset' ? 'E' : 'S',
+        matcher: r.matcher ?? 13,
+        ratt: r.ratt,
+      }))
+    : null
+  const rows = cloudRows ?? db.rounds.map((r) => ({ ...r, spel: 'S' }))
+  const tot = rows.reduce((s, r) => s + r.matcher, 0)
 
   return (
     <>
       <Summary
         title="DATABAS"
         items={[
-          { label: 'Sparade omgångar', value: String(db.rounds.length) },
+          { label: 'Sparade omgångar', value: String(rows.length) },
           { label: 'Matcher i databasen', value: String(tot) },
+          {
+            label: 'Lagring',
+            value: cloud === null ? 'Hämtar…' : cloudRows ? '☁ Firestore' : 'Lokalt (offline)',
+            sub: cloudRows ? 'Delad mellan alla enheter' : cloud === false ? 'Molndatabasen svarade inte' : '',
+          },
+          { label: 'Datapunkter per omgång', value: '13 matcher' },
         ]}
       />
 
@@ -34,12 +63,13 @@ export default function Databas() {
         <SecTitle>Sparade omgångar</SecTitle>
         <div className="tbl-wrap"><table className="tbl">
           <thead>
-            <tr><th>Datum</th><th>Matcher</th><th>Rätt</th><th>Status</th></tr>
+            <tr><th>Datum</th><th>Spel</th><th>Matcher</th><th>Rätt</th><th>Status</th></tr>
           </thead>
           <tbody>
-            {db.rounds.slice().reverse().map((r, i) => (
+            {rows.slice().reverse().map((r, i) => (
               <tr key={i}>
                 <td>{r.datum}</td>
+                <td>{r.spel}</td>
                 <td>{r.matcher}</td>
                 <td>{r.ratt != null ? `${r.ratt}/13` : '–'}</td>
                 <td>Klar</td>
@@ -47,10 +77,13 @@ export default function Databas() {
             ))}
           </tbody>
         </table></div>
+        {cloudRows && cloudRows.length === 0 && (
+          <Note className="mt-2">Molndatabasen är tom ännu – spara din första omgång under 5 · Resultat.</Note>
+        )}
         <Note className="mt-2">
-          Per match sparas: datum · match · sex expertrader · normaliserat expertmönster · Svenska
-          folket 1/X/2 · oddsprocent 1/X/2 · differensprofil · differensintervall · faktiskt
-          resultat.
+          Per match sparas i Firestore: datum · match · expertrader · normaliserat expertmönster ·
+          Svenska folket 1/X/2 · oddsprocent 1/X/2 · differensprofil · differensintervall ·
+          faktiskt resultat · din rad.
         </Note>
       </Card>
 

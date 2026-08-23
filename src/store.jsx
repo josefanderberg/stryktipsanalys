@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { emptyExperts, setRound, resetRound, DEMO_RESULTS, DEMO_NILLE, GAMES } from './lib/data.js'
+import { emptyExperts, setRound, resetRound, DEMO_RESULTS, DEMO_NILLE, GAMES, ROUND, SIGNS } from './lib/data.js'
+import { patternOf, diffOf, intervalOf, signStr, comboKey } from './lib/model.js'
 
 const VIEWS = ['start', 'experter', 'analys', 'match', 'rad', 'resultat', 'databas', 'nille']
 
@@ -153,6 +154,45 @@ export function AppProvider({ children }) {
     }
   }
 
+  // Spara omgången: fullt dataset till Firestore + sammanfattning lokalt som cache
+  const saveRound = async () => {
+    if (s.saved || !s.rad) return
+    const hits = s.results.filter((r, i) => s.rad[i].includes(r)).length
+    setDb({ rounds: [...db.rounds, { datum: ROUND.date || '–', matcher: 13, ratt: hits }] })
+    set({ saved: true })
+    const payload = {
+      id: `${s.game}-${ROUND.drawNumber ?? 'demo-' + ROUND.date}`,
+      game: s.game,
+      drawNumber: ROUND.drawNumber,
+      label: ROUND.label,
+      date: ROUND.date,
+      savedAt: new Date().toISOString(),
+      matcher: 13,
+      ratt: hits,
+      minRad: s.rad.map(signStr),
+      resultat: s.results.map((r) => SIGNS[r]),
+      // Firestore tillåter inte nästlade arrayer – varje expertrad blir ett objekt
+      experter: s.experts.map((e, i) => ({ expert: i + 1, tecken: e.map((c) => comboKey(c)) })),
+      matchdata: ROUND.matches.map((m, i) => ({
+        nr: i + 1,
+        namn: m.name,
+        folk: m.folk,
+        odds: m.odds,
+        monster: patternOf(s.experts, i),
+        diff: diffOf(i).total,
+        intervall: intervalOf(diffOf(i).total),
+        resultat: SIGNS[s.results[i]],
+      })),
+    }
+    try {
+      const { saveRoundToCloud } = await import('./lib/db.js')
+      await saveRoundToCloud(payload)
+      toast('Omgången sparad i molndatabasen ✓ 13 datapunkter')
+    } catch {
+      toast('Sparad lokalt – nådde inte molndatabasen just nu')
+    }
+  }
+
   const newRound = () => {
     resetRound(s.game)
     setS((prev) => ({ ...defaultState(prev.game), budget: prev.budget }))
@@ -161,7 +201,7 @@ export function AppProvider({ children }) {
 
   return (
     <Ctx.Provider
-      value={{ s, set, show, db, setDb, toastMsg, toast, newRound, fetchRound, fetchResults, setGame }}
+      value={{ s, set, show, db, setDb, toastMsg, toast, newRound, fetchRound, fetchResults, setGame, saveRound }}
     >
       {children}
     </Ctx.Provider>
