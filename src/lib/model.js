@@ -1,4 +1,4 @@
-import { SIGNS, COMBO_ORDER, INTERVALS, ROUND } from './data.js'
+import { SIGNS, COMBO_ORDER, INTERVALS, ROUND, GAMES } from './data.js'
 
 /* ---------- Grundläggande hjälpfunktioner ---------- */
 
@@ -76,7 +76,7 @@ const HIST_CACHE = new Map()
 export function historyFor(experts, mi) {
   const pattern = patternOf(experts, mi)
   const iv = intervalOf(diffOf(mi).total)
-  const key = `${ROUND.drawNumber ?? 'demo'}|${pattern}|${iv}`
+  const key = `${ROUND.game}|${ROUND.drawNumber ?? 'demo'}|${pattern}|${iv}`
   if (HIST_CACHE.has(key)) return HIST_CACHE.get(key)
 
   let h
@@ -98,6 +98,7 @@ export function historyFor(experts, mi) {
         { label: '95–99 % likhet', n: 241, p: [47, 27, 26] },
         { label: '90–94 % likhet', n: 514, p: [44, 28, 28] },
       ],
+      cross: { n: 36, p: [45, 28, 27] },
     }
   } else {
     const rng = makeRng(hash(pattern || 'tom rad'))
@@ -123,7 +124,9 @@ export function historyFor(experts, mi) {
       { label: '95–99 % likhet', n: Math.round(total * (1.7 + rng() * 0.6)), p: pct3(pull(base, priorPct, 0.3)) },
       { label: '90–94 % likhet', n: Math.round(total * (3.2 + rng() * 1.2)), p: pct3(pull(base, priorPct, 0.5)) },
     ]
-    h = { pattern, total, base, intervals, sim }
+    // Sekundärt stöd: jämförbar historik från den andra spelformen
+    const cross = { n: 8 + Math.floor(rng() * 40), p: pct3(pull(base, priorPct, 0.4)) }
+    h = { pattern, total, base, intervals, sim, cross }
   }
 
   // Exempelrader till "Visa historiska matcher"
@@ -285,13 +288,15 @@ export function signsFromDist(p) {
   return [ord[0], ord[1]].sort((a, b) => a - b)
 }
 
-// De fyra signalerna för en match
+// Signalerna för en match (inkl. sekundärt stöd från den andra spelformen)
 export function signalsFor(experts, mi) {
   const { score, ih, h } = modelFor(experts, mi)
+  const other = GAMES[ROUND.game]?.otherLabel || 'andra spelet'
   return {
     hist: { p: h.base, n: h.total, label: 'Historiskt mönster' },
     diff: { p: ih.p, n: ih.n, label: 'Mönster + differens' },
     sim: { p: h.sim[2].p, n: h.sim[2].n, label: 'Liknande mönster' },
+    cross: { p: h.cross.p, n: h.cross.n, label: `Stöd från ${other}` },
     model: { p: score, n: ih.n, label: 'Sammanvägd modell' },
   }
 }

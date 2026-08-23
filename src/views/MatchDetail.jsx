@@ -59,7 +59,7 @@ export default function MatchDetail() {
       </Card>
 
       <Card>
-        <SecTitle>Snabböversikt – fyra signaler</SecTitle>
+        <SecTitle>Snabböversikt – fem signaler</SecTitle>
         <div className="grid grid-cols-2 gap-2">
           {(() => {
             const sig = signalsFor(s.experts, mi)
@@ -67,12 +67,17 @@ export default function MatchDetail() {
               { t: 'Exakt expertmönster', d: sig.hist, sub: `${sig.hist.n} historiska matcher` },
               { t: 'Exakt mönster + dagens diff ⭐', d: sig.diff, sub: `${sig.diff.n} matcher i dagens intervall`, star: true },
               { t: 'Liknande mönster', d: sig.sim, sub: `${sig.sim.n} matcher` },
-              { t: 'Sammanvägd modell', d: sig.model, sub: 'Viktad sammanvägning' },
+              { t: `↔ ${sig.cross.label}`, d: sig.cross, sub: `${sig.cross.n} matcher · sekundärt stöd`, cross: true },
+              { t: 'Sammanvägd modell', d: sig.model, sub: 'Viktad sammanvägning', wide: true },
             ].map((b) => (
               <div
                 key={b.t}
-                className={`rounded-[11px] border p-2.5 ${
-                  b.star ? 'border-[#f4bb42] bg-[#fffdf7]' : 'border-line bg-white'
+                className={`rounded-[11px] border p-2.5 ${b.wide ? 'col-span-2 ' : ''}${
+                  b.star
+                    ? 'border-[#f4bb42] bg-[#fffdf7]'
+                    : b.cross
+                      ? 'border-[#cdbbea] bg-[#f9f6ff]'
+                      : 'border-line bg-white'
                 }`}
               >
                 <h3 className="m-0 mb-2 text-[12px] font-bold leading-snug">{b.t}</h3>

@@ -8,6 +8,7 @@ import MatchDetail from './views/MatchDetail.jsx'
 import Rad from './views/Rad.jsx'
 import Resultat from './views/Resultat.jsx'
 import Databas from './views/Databas.jsx'
+import Nille from './views/Nille.jsx'
 
 const STEPS = [
   { id: 'start', label: '1 · Start' },
@@ -15,6 +16,7 @@ const STEPS = [
   { id: 'analys', label: '3 · Analys' },
   { id: 'rad', label: '4 · Min rad' },
   { id: 'resultat', label: '5 · Resultat' },
+  { id: 'nille', label: 'NILLE' },
   { id: 'databas', label: 'Databas' },
 ]
 
@@ -35,10 +37,14 @@ function Steps() {
           onClick={() => show(st.id)}
           className={`shrink-0 border-0 rounded-[18px] px-3 py-[7px] font-bold text-xs shadow-[0_1px_4px_#0001] ${
             st.id === active
-              ? 'bg-royal text-white'
+              ? st.id === 'nille'
+                ? 'bg-[#6d35c5] text-white'
+                : 'bg-royal text-white'
               : done(st.id)
                 ? 'bg-[#dff0e5] text-[#17643a]'
-                : 'bg-white text-[#153b61]'
+                : st.id === 'nille'
+                  ? 'bg-white text-[#6d35c5]'
+                  : 'bg-white text-[#153b61]'
           }`}
         >
           {st.label}
@@ -56,7 +62,7 @@ function BottomBar() {
   const filled = allFilled(s.experts)
 
   const nextExpert = () => {
-    if (s.currentExpert < 5) {
+    if (s.currentExpert < s.experts.length - 1) {
       set({ currentExpert: s.currentExpert + 1 })
       window.scrollTo(0, 0)
     } else show('analys')
@@ -77,7 +83,7 @@ function BottomBar() {
       </button>
     )
   } else if (s.view === 'experter') {
-    const last = s.currentExpert === 5
+    const last = s.currentExpert === s.experts.length - 1
     content = (
       <>
         <button className={sec} onClick={() => show('start')}>‹ Start</button>
@@ -120,6 +126,26 @@ function BottomBar() {
         <button className={sec} onClick={() => show('rad')}>‹ Min rad</button>
         <button className={btn} disabled={!all || s.saved} onClick={saveRound}>
           {s.saved ? 'SPARAT ✓' : 'SPARA I DATABAS'}
+        </button>
+      </>
+    )
+  } else if (s.view === 'nille') {
+    const nilleBtn = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-[#6d35c5] text-white'
+    const step = s.nille.step
+    const labels = ['Analysera raden ›', 'Bygg min rad ›', 'Spara rad ›', 'Ny NILLE-analys']
+    content = (
+      <>
+        <button className={sec} onClick={() => show('start')}>‹ Start</button>
+        <button
+          className={nilleBtn}
+          onClick={() => {
+            set((prev) => ({
+              nille: { ...prev.nille, step: step === 3 ? 0 : step + 1 },
+            }))
+            window.scrollTo(0, 0)
+          }}
+        >
+          {labels[step]}
         </button>
       </>
     )
@@ -166,6 +192,7 @@ const VIEW_MAP = {
   rad: Rad,
   resultat: Resultat,
   databas: Databas,
+  nille: Nille,
 }
 
 export default function App() {
@@ -174,7 +201,7 @@ export default function App() {
   return (
     <>
       <header className="bg-navy text-white px-3.5 pt-4 pb-3 sticky top-0 z-20">
-        <h1 className="m-0 text-[21px] font-bold">Stryktipsanalys</h1>
+        <h1 className="m-0 text-[21px] font-bold">Tipsanalys</h1>
         <p className="m-0 mt-1 text-xs opacity-85">
           {s.roundData ? ROUND.label : 'Prototyp · hämta omgången under Start'}
         </p>

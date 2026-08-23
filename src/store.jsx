@@ -1,20 +1,21 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { emptyExperts, setRound, DEMO_RESULTS } from './lib/data.js'
+import { emptyExperts, setRound, resetRound, DEMO_RESULTS, DEMO_NILLE, GAMES } from './lib/data.js'
 
-const VIEWS = ['start', 'experter', 'analys', 'match', 'rad', 'resultat', 'databas']
-const DATA_URL = import.meta.env.BASE_URL + 'data/omgang.json'
+const VIEWS = ['start', 'experter', 'analys', 'match', 'rad', 'resultat', 'databas', 'nille']
 
-const defaultState = () => ({
+const defaultState = (game = 'stryktipset') => ({
   view: 'start',
+  game,
   fetched: false,
   currentExpert: 0,
-  experts: emptyExperts(),
+  experts: emptyExperts(GAMES[game].experts),
   budget: 288,
   rad: null,
   results: Array(13).fill(null),
   saved: false,
   detail: 0,
   roundData: null,
+  nille: { step: 0, rad: DEMO_NILLE.map((r) => r.slice()) },
 })
 
 const demoDb = () => ({
@@ -39,9 +40,9 @@ const Ctx = createContext(null)
 export function AppProvider({ children }) {
   const [s, setS] = useState(() => {
     const saved = load('sta3_state')
-    if (saved && VIEWS.includes(saved.view)) {
-      const merged = { ...defaultState(), ...saved }
-      if (merged.roundData) setRound(merged.roundData)
+    if (saved && VIEWS.includes(saved.view) && GAMES[saved.game || 'stryktipset']) {
+      const merged = { ...defaultState(saved.game || 'stryktipset'), ...saved }
+      if (merged.roundData) setRound(merged.roundData, merged.game)
       return merged
     }
     return defaultState()
@@ -75,28 +76,51 @@ export function AppProvider({ children }) {
     timer.current = setTimeout(() => setToastMsg(null), 2600)
   }
 
+  // Byt spelform: omgångsdata, expertrader och rad nollställs, databasen behålls
+  const setGame = (game) => {
+    if (game === s.game) return
+    resetRound(game)
+    setS((prev) => ({ ...defaultState(game), view: prev.view, budget: prev.budget }))
+    toast(GAMES[game].label + ' valt – hämta omgången')
+  }
+
   // Hämtar aktuell omgång (bakad JSON från Svenska Spels API via GitHub Actions).
-  // Faller tillbaka på demodata om filen inte kan nås (t.ex. lokalt utan nätverk).
+  // Faller tillbaka på demodata om filen saknas eller ingen omgång är öppen.
   const fetchRound = async () => {
+    const game = s.game
     try {
-      const r = await fetch(DATA_URL, { cache: 'no-store' })
+      const r = await fetch(`${import.meta.env.BASE_URL}data/${game}.json`, { cache: 'no-store' })
       if (!r.ok) throw new Error()
       const data = await r.json()
-      if (!setRound(data)) throw new Error()
+      if (data.available === false) {
+        resetRound(game)
+        set({ fetched: true, roundData: null })
+        toast(`Ingen aktuell ${GAMES[game].label}-omgång just nu – visar demodata`)
+        return false
+      }
+      if (!setRound(data, game)) throw new Error()
       set((prev) => {
         const newDraw = prev.roundData?.drawNumber !== data.drawNumber
         return {
           fetched: true,
           roundData: data,
           ...(newDraw
-            ? { experts: emptyExperts(), currentExpert: 0, rad: null, results: Array(13).fill(null), saved: false }
+            ? {
+                experts: emptyExperts(GAMES[game].experts),
+                currentExpert: 0,
+                rad: null,
+                results: Array(13).fill(null),
+                saved: false,
+                nille: { step: 0, rad: DEMO_NILLE.map((x) => x.slice()) },
+              }
             : {}),
         }
       })
       toast('Omgång hämtad från Svenska Spel')
       return true
     } catch {
-      set({ fetched: true })
+      resetRound(game)
+      set({ fetched: true, roundData: null })
       toast('Kunde inte nå datakällan – visar demodata')
       return false
     }
@@ -110,7 +134,7 @@ export function AppProvider({ children }) {
       return
     }
     try {
-      const r = await fetch(DATA_URL, { cache: 'no-store' })
+      const r = await fetch(`${import.meta.env.BASE_URL}data/${s.game}.json`, { cache: 'no-store' })
       if (!r.ok) throw new Error()
       const data = await r.json()
       const dn = s.roundData.drawNumber
@@ -130,13 +154,14 @@ export function AppProvider({ children }) {
   }
 
   const newRound = () => {
-    setS({ ...defaultState(), view: 'start' })
+    resetRound(s.game)
+    setS((prev) => ({ ...defaultState(prev.game), budget: prev.budget }))
     window.scrollTo(0, 0)
   }
 
   return (
     <Ctx.Provider
-      value={{ s, set, show, db, setDb, toastMsg, toast, newRound, fetchRound, fetchResults }}
+      value={{ s, set, show, db, setDb, toastMsg, toast, newRound, fetchRound, fetchResults, setGame }}
     >
       {children}
     </Ctx.Provider>

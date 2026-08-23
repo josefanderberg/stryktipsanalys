@@ -1,4 +1,11 @@
 export const SIGNS = ['1', 'X', '2']
+
+// De två spelformerna. Vald spelform används alltid primärt – jämförbar
+// historik från den andra används bara som sekundärt stöd.
+export const GAMES = {
+  stryktipset: { label: 'Stryktipset', experts: 6, other: 'europatipset', otherLabel: 'Europatipset', url: 'spela.svenskaspel.se/stryktipset' },
+  europatipset: { label: 'Europatipset', experts: 3, other: 'stryktipset', otherLabel: 'Stryktipset', url: 'spela.svenskaspel.se/europatipset' },
+}
 export const COMBO_ORDER = ['1', 'X', '2', '1X', '12', 'X2', '1X2']
 export const INTERVALS = ['0–9', '10–19', '20–29', '30–39', '40+']
 // Demodata som reserv om riktig data inte kan hämtas
@@ -39,12 +46,18 @@ export const STRATEGY_PERF = [
   { name: '▥ Sammanvägd modell', tack: '56,7%', ratt: '7,2', full: '61,2', omg: 128, note: 'Hjälper vid svagt historiskt underlag.' },
 ]
 
-export const emptyExperts = () =>
-  Array.from({ length: 6 }, () => Array.from({ length: 13 }, () => []))
+export const emptyExperts = (n = 6) =>
+  Array.from({ length: n }, () => Array.from({ length: 13 }, () => []))
+
+// Nilles demorad (teckenindex) – 6 spikar · 6 halva · 1 hel = 192 kr
+export const DEMO_NILLE = [
+  [0], [0, 1], [0, 2], [0], [0, 1], [1, 2], [0], [0, 1], [1, 2], [0], [0], [1], [0, 1, 2],
+]
 
 // Aktuell omgång – börjar som demo och byts ut när riktig data hämtats
 // (public/data/omgang.json, bakad av scripts/fetch-omgang.mjs via GitHub Actions).
 export const ROUND = {
+  game: 'stryktipset',
   source: 'demo',
   drawNumber: null,
   label: 'Demo-omgång · Lördag 15 augusti 2026',
@@ -55,11 +68,24 @@ export const ROUND = {
   prevResult: null,
 }
 
-export function setRound(data) {
+export function resetRound(game = 'stryktipset') {
+  ROUND.game = game
+  ROUND.source = 'demo'
+  ROUND.drawNumber = null
+  ROUND.label = 'Demo-omgång · Lördag 15 augusti 2026'
+  ROUND.date = '2026-08-15'
+  ROUND.updated = null
+  ROUND.matches = DEMO_MATCHES
+  ROUND.result = null
+  ROUND.prevResult = null
+}
+
+export function setRound(data, game = 'stryktipset') {
   if (!data || !Array.isArray(data.matches) || data.matches.length !== 13) return false
+  ROUND.game = game
   ROUND.source = 'live'
   ROUND.drawNumber = data.drawNumber
-  ROUND.label = data.label || `Stryktipset omgång ${data.drawNumber}`
+  ROUND.label = data.label || `${GAMES[game].label} omgång ${data.drawNumber}`
   ROUND.date = data.date || ''
   ROUND.updated = data.updated || null
   ROUND.matches = data.matches

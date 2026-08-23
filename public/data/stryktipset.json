@@ -1,0 +1,211 @@
+{
+ "available": true,
+ "updated": "2026-08-23T18:11:32.590Z",
+ "drawNumber": 4968,
+ "label": "Stryktipset v 35, stänger 2026-08-29 15:59",
+ "date": "2026-08-29",
+ "closeTime": "2026-08-29T15:59:00+02:00",
+ "matches": [
+  {
+   "name": "Tottenham – Newcastle",
+   "folk": [
+    53,
+    22,
+    25
+   ],
+   "odds": [
+    45,
+    26,
+    29
+   ],
+   "start": "2026-08-29T18:30:00+02:00"
+  },
+  {
+   "name": "Bournemouth – Everton",
+   "folk": [
+    47,
+    27,
+    26
+   ],
+   "odds": [
+    48,
+    26,
+    26
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Coventry – Hull",
+   "folk": [
+    43,
+    25,
+    32
+   ],
+   "odds": [
+    50,
+    26,
+    24
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Blackburn – Queens Park Rangers",
+   "folk": [
+    45,
+    26,
+    29
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Bolton – Lincoln",
+   "folk": [
+    42,
+    28,
+    30
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Bristol City – Portsmouth",
+   "folk": [
+    46,
+    25,
+    29
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Cardiff – Sheffield U",
+   "folk": [
+    44,
+    26,
+    30
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Charlton – Preston",
+   "folk": [
+    45,
+    27,
+    28
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Norwich – Burnley",
+   "folk": [
+    45,
+    25,
+    30
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Southampton – Millwall",
+   "folk": [
+    44,
+    27,
+    29
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Watford – West Ham",
+   "folk": [
+    45,
+    26,
+    29
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Cambridge – Huddersfield",
+   "folk": [
+    45,
+    25,
+    30
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  },
+  {
+   "name": "Leyton Orient – Barnsley",
+   "folk": [
+    44,
+    28,
+    28
+   ],
+   "odds": [
+    33,
+    33,
+    34
+   ],
+   "start": "2026-08-29T16:00:00+02:00"
+  }
+ ],
+ "result": null,
+ "prevResult": {
+  "drawNumber": 4967,
+  "outcomes": [
+   "1",
+   "1",
+   "1",
+   "2",
+   "1",
+   "X",
+   "2",
+   "X",
+   "1",
+   "X",
+   "2",
+   "X",
+   "X"
+  ]
+ }
+}

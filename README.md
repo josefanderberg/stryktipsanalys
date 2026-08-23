@@ -1,6 +1,10 @@
-# Stryktipsanalys
+# Tipsanalys
 
-Mobilanpassad prototyp för ett analysverktyg för Stryktipset, byggd med **React + Vite + Tailwind CSS**.
+Mobilanpassad prototyp för ett analysverktyg för Stryktipset och Europatipset, byggd med
+**React + Vite + Tailwind CSS**. Innehåller även **NILLE-analysen** – en personlig analys av en
+inlagd rad (Rad → Analys → Min rad → Resultat) med topp 5 lägg till/ta bort, viktigaste
+tendensen och förbättrad rad inom samma systempris. Vald spelform används primärt; jämförbar
+historik från den andra spelformen visas som sekundär stödsignal i matchanalysen.
 
 **Live:** https://josefanderberg.github.io/stryktipsanalys/
 

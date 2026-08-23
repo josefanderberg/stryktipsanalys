@@ -1,5 +1,5 @@
 import { useApp } from '../store.jsx'
-import { ROUND, DEMO_EXPERTS, SIGNS } from '../lib/data.js'
+import { ROUND, DEMO_EXPERTS, SIGNS, GAMES } from '../lib/data.js'
 import { expertFilled, filledCount } from '../lib/model.js'
 import { Card, Note, Cta, DetailBtn, Coupon, CouponRow } from '../components/ui.jsx'
 
@@ -39,7 +39,7 @@ export default function Experter() {
 
   const fillDemo = () => {
     set({
-      experts: DEMO_EXPERTS.map((e) => e.map((c) => c.slice())),
+      experts: DEMO_EXPERTS.slice(0, GAMES[s.game].experts).map((e) => e.map((c) => c.slice())),
       rad: null,
       saved: false,
     })
@@ -67,7 +67,10 @@ export default function Experter() {
         ))}
       </div>
 
-      <Coupon title={`EXPERTRAD ${ei + 1}`} sub={`${filledCount(s.experts, ei)}/13`}>
+      <Coupon
+        title={`${GAMES[s.game].label.toUpperCase()} · EXPERTRAD ${ei + 1}`}
+        sub={`${filledCount(s.experts, ei)}/13`}
+      >
         {ROUND.matches.map((m, mi) => (
           <CouponRow
             key={mi}
@@ -79,7 +82,7 @@ export default function Experter() {
         ))}
       </Coupon>
 
-      <DetailBtn onClick={fillDemo}>Fyll i sex demorader (för att testa flödet)</DetailBtn>
+      <DetailBtn onClick={fillDemo}>Fyll i demorader (för att testa flödet)</DetailBtn>
       <Note className="mt-2">
         Klicka i tecknen från expertens rad – enkel, halvgarderad (t.ex. 1X) eller helgarderad
         (1X2). Ordningen på experterna spelar ingen roll: systemet räknar om raderna till ett
