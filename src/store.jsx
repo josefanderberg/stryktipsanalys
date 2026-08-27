@@ -17,7 +17,7 @@ const defaultState = (game = 'stryktipset') => ({
   saved: false,
   detail: 0,
   roundData: null,
-  nille: { step: 0, rad: emptyRad(), saved: false },
+  nille: { step: 0, rad: emptyRad(), saved: false, budget: '192', strategy: 'adaptive' },
 })
 
 function load(key) {
@@ -120,7 +120,7 @@ export function AppProvider({ children }) {
                 rad: null,
                 results: Array(13).fill(null),
                 saved: false,
-                nille: { step: 0, rad: emptyRad(), saved: false },
+                nille: { step: 0, rad: emptyRad(), saved: false, budget: '192', strategy: 'adaptive' },
               }
             : {}),
         }

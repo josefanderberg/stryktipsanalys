@@ -130,3 +130,47 @@ export const Coupon = ({ title, sub, children }) => (
     {children}
   </div>
 )
+
+// Färdig kupongvy: markerade tecken per match, som en ifylld spelkupong.
+// Läsvy – här ändras inget, den visar systemet precis som det spelas.
+export function FinalCoupon({ rows, matches, accent = '#6731c4' }) {
+  return (
+    <div>
+      <div className="grid grid-cols-[30px_minmax(0,1fr)_38px_38px_38px] sm:grid-cols-[38px_minmax(0,1fr)_54px_54px_54px] gap-1.5 items-center px-1.5 py-2 text-[11px] font-black text-muted border-b border-line">
+        <span>#</span>
+        <span>Match</span>
+        <span className="text-center">1</span>
+        <span className="text-center">X</span>
+        <span className="text-center">2</span>
+      </div>
+      {matches.map((m, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-[30px_minmax(0,1fr)_38px_38px_38px] sm:grid-cols-[38px_minmax(0,1fr)_54px_54px_54px] gap-1.5 items-center px-1.5 py-1.5 border-b border-[#edf0f3] last:border-b-0"
+        >
+          <span
+            className="w-7 h-7 rounded-md text-white grid place-items-center font-black text-[11px]"
+            style={{ background: accent }}
+          >
+            {i + 1}
+          </span>
+          <span className="text-[12px] font-semibold truncate">{m.name}</span>
+          {SIGNS.map((s, si) => {
+            const on = rows[i].includes(si)
+            return (
+              <span
+                key={s}
+                className={`h-[34px] border-2 rounded-md grid place-items-center font-black text-[13px] ${
+                  on ? 'text-white' : 'bg-white border-[#d9dee5] text-[#c3c8cf]'
+                }`}
+                style={on ? { background: accent, borderColor: accent } : undefined}
+              >
+                {s}
+              </span>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}

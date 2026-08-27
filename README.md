@@ -26,8 +26,8 @@ sekundär stödsignal när underlaget är litet.
    per match: expertmönster → all historik → dagens differens → historik per differensintervall →
    liknande mönster + korsstöd → modellbedömning → rekommendation.
 4. **Min rad** – 128 / 192 / 256 kr eller ⭐ Bästa reducerade (192 kr standard). Alla fyra
-   strategier byggs om till vald radstorlek; ★ Adaptiv är standard. Jämförelsetabell, konfliktkort
-   och kupongvy.
+   strategier byggs om till vald radstorlek; ★ Adaptiv är standard och bygger exakt systemform.
+   Jämförelsetabell, konfliktkort och kupongvy.
 5. **Resultat** – hämta resultat från Svenska Spel eller rätta manuellt, spara i databasen.
 
 ## NILLE-analysen
@@ -36,6 +36,27 @@ Rad → Analys → Min rad → Resultat. Kupongöversikt med sex signaler, klick
 rekommenderat tecken och modellprocent, detaljpanel per match (riskbadge SER BRA UT /
 KONTROLLERA / NILLE-FÄLLA, marknadsdata, modellbedömning, motivering), Topp 5 lägg till/ta bort,
 samt jämförelse mellan Nilles rad och rekommenderad rad per budget och strategi.
+
+## Systembygge och R-system
+
+Budgetvalen bygger exakta systemstorlekar genom att helgardera de mest osäkra matcherna,
+halvgardera nästa och spika resten:
+
+| Val | Form | Rader |
+|---|---|---|
+| 128 kr | 0 hel · 7 halv · 6 spikar | 2⁷ = 128 |
+| 192 kr | 1 hel · 6 halv · 6 spikar | 3 × 2⁶ = 192 |
+| 256 kr | 0 hel · 8 halv · 5 spikar | 2⁸ = 256 |
+| ⭐ Bästa reducerade | R-system ur katalogen | enligt system |
+
+**⭐ Bästa reducerade** väljer ett riktigt R-system ur Svenska Spels katalog (29 system) utifrån
+omgångens riskprofil: antalet helt öppna matcher styr helgarderingarna, antalet utan tydlig
+favorit styr halvgarderingarna. För en profil med fyra öppna och fyra osäkra matcher blir det
+**R 4-4-144** – 5 spikar + 4 halvgarderingar + 4 helgarderingar = 144 spelade rader (fullt system
+1296 rader) med garanti 12 rätt när systemets villkor uppfylls.
+
+I NILLE / Min rad visas den färdiga rekommendationen som **kupongvy** direkt före Spara rad, med
+spikar, halv- och helgarderingar, radantal och R-systemets garanti.
 
 ## Modellen
 
@@ -73,7 +94,6 @@ node scripts/fetch-omgang.mjs   # uppdatera omgångsdata lokalt
 
 ## Nästa steg
 
-- Riktig reduceringsmotor bakom ⭐ Bästa reducerade.
 - Strategiernas historiska prestanda beräknad ur sparade omgångar.
 - Kalibrering av modellens vikter mot verkliga utfall när databasen vuxit.
 - Inloggning om databasen ska skyddas mot utomstående skrivningar.

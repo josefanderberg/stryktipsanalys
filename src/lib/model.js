@@ -322,8 +322,120 @@ function buildRadFromDists(dists, budget) {
   return chosen.map((c) => c.slice().sort((a, b) => a - b))
 }
 
-// "Bästa reducerade" utgår från 192-systemet tills en riktig reduceringsmotor finns
-export const budgetKr = (budget) => (budget === 'reduced' ? 192 : budget)
+/* ---------- Riktiga R-system från Svenska Spel ---------- */
+
+// whole = helgarderingar, half = halvgarderingar, rows = spelade rader efter
+// reducering, guarantee = garanterat antal rätt när systemets villkor uppfylls.
+export const R_SYSTEMS = [
+  { name: 'R 0-7-16', whole: 0, half: 7, rows: 16, guarantee: 12 },
+  { name: 'R 0-11-16', whole: 0, half: 11, rows: 16, guarantee: 10 },
+  { name: 'R 2-5-12', whole: 2, half: 5, rows: 12, guarantee: 11 },
+  { name: 'R 3-3-24', whole: 3, half: 3, rows: 24, guarantee: 12 },
+  { name: 'R 4-0-9', whole: 4, half: 0, rows: 9, guarantee: 12 },
+  { name: 'R 4-4-24', whole: 4, half: 4, rows: 24, guarantee: 11 },
+  { name: 'R 4-4-144', whole: 4, half: 4, rows: 144, guarantee: 12 },
+  { name: 'R 4-5-48', whole: 4, half: 5, rows: 48, guarantee: 11 },
+  { name: 'R 4-6-24', whole: 4, half: 6, rows: 24, guarantee: 10 },
+  { name: 'R 4-6-72', whole: 4, half: 6, rows: 72, guarantee: 11 },
+  { name: 'R 4-7-48', whole: 4, half: 7, rows: 48, guarantee: 10 },
+  { name: 'R 4-7-144', whole: 4, half: 7, rows: 144, guarantee: 11 },
+  { name: 'R 5-0-18', whole: 5, half: 0, rows: 18, guarantee: 11 },
+  { name: 'R 5-3-36', whole: 5, half: 3, rows: 36, guarantee: 11 },
+  { name: 'R 5-5-108', whole: 5, half: 5, rows: 108, guarantee: 11 },
+  { name: 'R 6-3-24', whole: 6, half: 3, rows: 24, guarantee: 10 },
+  { name: 'R 6-3-72', whole: 6, half: 3, rows: 72, guarantee: 11 },
+  { name: 'R 6-4-44', whole: 6, half: 4, rows: 44, guarantee: 10 },
+  { name: 'R 7-0-36', whole: 7, half: 0, rows: 36, guarantee: 11 },
+  { name: 'R 7-2-34', whole: 7, half: 2, rows: 34, guarantee: 10 },
+  { name: 'R 7-2-108', whole: 7, half: 2, rows: 108, guarantee: 11 },
+  { name: 'R 8-0-27', whole: 8, half: 0, rows: 27, guarantee: 10 },
+  { name: 'R 8-0-81', whole: 8, half: 0, rows: 81, guarantee: 11 },
+  { name: 'R 8-2-324', whole: 8, half: 2, rows: 324, guarantee: 11 },
+  { name: 'R 9-0-222', whole: 9, half: 0, rows: 222, guarantee: 11 },
+  { name: 'R 9-0-243', whole: 9, half: 0, rows: 243, guarantee: 10 },
+  { name: 'R 10-0-153', whole: 10, half: 0, rows: 153, guarantee: 10 },
+  { name: 'R 10-0-567', whole: 10, half: 0, rows: 567, guarantee: 11 },
+  { name: 'R 11-0-729', whole: 11, half: 0, rows: 729, guarantee: 11 },
+]
+
+// Fullt system (oreducerat) för ett givet antal hel-/halvgarderingar
+export const fullRows = (whole, half) => 3 ** whole * 2 ** half
+
+// Matcherna sorterade från mest till minst osäker: lägst toppprocent först,
+// därefter minst avstånd ner till tvåan.
+export function uncertaintyRank(experts) {
+  return ROUND.matches
+    .map((_, i) => {
+      const p = modelFor(experts, i).score
+      const sorted = p.slice().sort((a, b) => b - a)
+      return { i, max: sorted[0], gap: sorted[0] - sorted[1] }
+    })
+    .sort((a, b) => a.max - b.max || a.gap - b.gap)
+}
+
+// Bygg ett system med exakt angivet antal hel- och halvgarderingar:
+// de mest osäkra matcherna helgarderas, nästa halvgarderas, resten spikas.
+export function buildSystem(experts, whole, half) {
+  const rank = uncertaintyRank(experts).map((x) => x.i)
+  const wholeSet = new Set(rank.slice(0, whole))
+  const halfSet = new Set(rank.slice(whole, whole + half))
+  return ROUND.matches.map((_, i) => {
+    const p = modelFor(experts, i).score
+    const ord = [0, 1, 2].sort((a, b) => p[b] - p[a])
+    if (wholeSet.has(i)) return [0, 1, 2]
+    if (halfSet.has(i)) return [ord[0], ord[1]].sort((a, b) => a - b)
+    return [ord[0]]
+  })
+}
+
+// Väljer det R-system ur katalogen som bäst matchar omgångens riskprofil.
+// Helt öppna matcher (ingen favorit alls) motiverar helgardering, matcher utan
+// tydlig favorit motiverar halvgardering. maxRows håller raden spelbar.
+export function chooseReducedSystem(experts, maxRows = 250) {
+  const rank = uncertaintyRank(experts)
+  // Helt öppen: låg topp OCH tätt mellan de två bästa tecknen
+  const open = rank.filter((x) => x.max < 40 && x.gap < 12).length
+  // Osäker: ingen tydlig favorit
+  const uncertain = rank.filter((x) => x.max < 48).length
+  const fits = R_SYSTEMS.filter((s) => s.whole + s.half <= 13 && s.rows <= maxRows)
+  const pool = fits.length ? fits : R_SYSTEMS.filter((s) => s.whole + s.half <= 13)
+  const scored = pool.map((s) => ({
+    ...s,
+    miss: Math.abs(s.whole - open) * 1.5 + Math.abs(s.whole + s.half - uncertain),
+  }))
+  scored.sort(
+    (a, b) => a.miss - b.miss || b.guarantee - a.guarantee || a.rows - b.rows,
+  )
+  return { ...scored[0], open, uncertain }
+}
+
+// Systempaket för en vald budget – exakt systemstorlek och färdig rad
+export function systemForBudget(experts, budget) {
+  if (budget === 'reduced') {
+    const r = chooseReducedSystem(experts)
+    return {
+      ...r,
+      reduced: true,
+      rad: buildSystem(experts, r.whole, r.half),
+      fullRows: fullRows(r.whole, r.half),
+    }
+  }
+  const kr = Number(budget)
+  // 128 = 2^7, 192 = 3 × 2^6, 256 = 2^8
+  const shape =
+    kr === 128 ? { whole: 0, half: 7 } : kr === 256 ? { whole: 0, half: 8 } : { whole: 1, half: 6 }
+  return {
+    name: `${kr} kr`,
+    ...shape,
+    reduced: false,
+    rows: fullRows(shape.whole, shape.half),
+    rad: buildSystem(experts, shape.whole, shape.half),
+  }
+}
+
+// Radstorlek som strategierna byggs mot ("Bästa reducerade" utgår från sitt
+// oreducerade fullsystem så att teckenfördelningen blir densamma)
+export const budgetKr = (budget) => (budget === 'reduced' ? 192 : Number(budget))
 
 // Alla fyra strategiernas rader, byggda för samma budget
 export function strategyRows(experts, budget) {

@@ -3,6 +3,7 @@ import { useApp } from '../store.jsx'
 import { ROUND, SIGNS } from '../lib/data.js'
 import {
   allFilled, radCost, radCounts, recFor, signStr, strategyRows, STRATEGIES, budgetKr,
+  systemForBudget,
 } from '../lib/model.js'
 import { Card, SecTitle, Note, Cta, DetailBtn, Coupon, CouponRow, NrBadge } from '../components/ui.jsx'
 
@@ -32,11 +33,16 @@ function Tag({ signs }) {
 export default function Rad() {
   const { s, set, show, toast } = useApp()
   const [onlyDiff, setOnlyDiff] = useState(false)
-  const filled = allFilled(s.experts)
-  const strat = filled ? strategyRows(s.experts, s.budget) : null
+  const filled = allFilled(s.experts) && ROUND.matches
+  // Adaptiv använder systemmotorn så att spikar/halva/hela blir exakt rätt
+  // för vald radstorlek (och för ⭐ Bästa reducerade: valt R-system).
+  const pack = filled ? systemForBudget(s.experts, s.budget) : null
+  const strat = filled
+    ? { ...strategyRows(s.experts, s.budget), adaptive: { ...strategyRows(s.experts, s.budget).adaptive, rad: pack.rad } }
+    : null
 
   useEffect(() => {
-    if (filled && !s.rad) set({ rad: strategyRows(s.experts, s.budget).adaptive.rad })
+    if (filled && !s.rad) set({ rad: systemForBudget(s.experts, s.budget).rad })
   }, [filled, s.rad]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!s.fetched || !ROUND.matches) {
@@ -61,7 +67,10 @@ export default function Rad() {
 
   const cost = radCost(s.rad)
   const c = radCounts(s.rad)
-  const over = cost > budgetKr(s.budget)
+  // Raden följer R-systemets form ⇒ den spelas som reducerat system
+  const matchesSystem =
+    pack.reduced && c.hel === pack.whole && c.halv === pack.half
+  const over = (matchesSystem ? pack.rows : cost) > budgetKr(s.budget) && !pack.reduced
 
   // Enighet mellan strategierna, match för match
   const rowsOf = (key) => strat[key].rad
@@ -143,8 +152,8 @@ export default function Rad() {
           ))}
         </div>
         <Note className="mt-2">
-          {s.budget === 'reduced'
-            ? 'Bästa reducerade utgår från 192-systemet och reduceras efter modellens starkaste villkor när reduceringsmotorn kopplas på.'
+          {pack.reduced
+            ? `Bästa reducerade väljer ett riktigt R-system ur Svenska Spels katalog utifrån omgångens riskprofil. Just nu: ${pack.name} – ${pack.rows} spelade rader med garanti ${pack.guarantee} rätt.`
             : 'Alla fyra strategier byggs om till vald radstorlek (1 kr per rad). 192 kr är standard och ★ Adaptiv är standardstrategi. Din egen rad kan du sedan ändra tecken för tecken.'}
         </Note>
       </Card>
@@ -165,7 +174,8 @@ export default function Rad() {
                 )}
               </h3>
               <b className="text-[13px]">
-                {sc.spik} spikar · {sc.halv} halva · {sc.hel} hela · {radCost(rad)} kr
+                {sc.spik} spikar · {sc.halv} halva · {sc.hel} hela ·{' '}
+                {pack.reduced && st.key === 'adaptive' ? `${pack.rows} kr (${pack.name})` : `${radCost(rad)} kr`}
               </b>
               <p className="my-1.5 text-[12.5px] text-[#445465] leading-relaxed">{st.desc}</p>
               {st.key === 'adaptive' && (
@@ -321,8 +331,10 @@ export default function Rad() {
 
         <div className="grid grid-cols-4 gap-[7px] mt-2.5">
           <div className={`rounded-[9px] px-1.5 py-2 text-center text-[11px] ${over ? 'bg-[#fde0dd]' : 'bg-[#e7eef5]'}`}>
-            <b className={`block text-base ${over ? 'text-[#a02c21]' : 'text-navy'}`}>{cost} kr</b>
-            <span className="text-muted">Systempris</span>
+            <b className={`block text-base ${over ? 'text-[#a02c21]' : 'text-navy'}`}>
+              {matchesSystem ? pack.rows : cost} kr
+            </b>
+            <span className="text-muted">{matchesSystem ? pack.name : 'Systempris'}</span>
           </div>
           <div className="rounded-[9px] px-1.5 py-2 text-center text-[11px] bg-[#e7eef5]">
             <b className="block text-base text-navy">{c.spik}</b>
@@ -351,7 +363,10 @@ export default function Rad() {
 
       <Card>
         <SecTitle>Kupongvy</SecTitle>
-        <Coupon title="STRYKTIPSET" sub={`${cost} rader`}>
+        <Coupon
+          title={ROUND.game === 'europatipset' ? 'EUROPATIPSET' : 'STRYKTIPSET'}
+          sub={`${cost} rader`}
+        >
           {ROUND.matches.map((m, i) => (
             <CouponRow
               key={i}
@@ -362,6 +377,22 @@ export default function Rad() {
             />
           ))}
         </Coupon>
+        {pack.reduced && (
+          <div className="mt-3 rounded-[9px] border border-[#dccdf8] bg-[#f5f0ff] text-[#4c2599] px-3.5 py-3 text-[12.5px] leading-relaxed">
+            <b>{pack.name}</b> · {pack.rows} spelade rader · garanti {pack.guarantee} rätt när
+            systemets villkor uppfylls. Fullt system hade varit {pack.fullRows} rader – reduceringen
+            sparar {pack.fullRows - pack.rows} rader.
+            {cost !== pack.fullRows && (
+              <>
+                <br />
+                <span className="opacity-80">
+                  Obs: kupongvyn visar din nuvarande rad ({cost} rader). Systemgarantin gäller när
+                  raden har exakt {pack.whole} hel- och {pack.half} halvgarderingar.
+                </span>
+              </>
+            )}
+          </div>
+        )}
       </Card>
 
       <Card>

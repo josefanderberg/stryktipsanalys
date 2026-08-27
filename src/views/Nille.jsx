@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useApp } from '../store.jsx'
 import { ROUND, SIGNS } from '../lib/data.js'
 import {
-  modelFor, diffOf, radCost, signStr, signsFromDist, relStars, starStr, strategyRows, STRATEGIES, budgetKr, matchWord,
+  modelFor, diffOf, radCost, radCounts, signStr, signsFromDist, relStars, starStr,
+  strategyRows, STRATEGIES, systemForBudget,
 } from '../lib/model.js'
-import { Card, SecTitle, Note, Cta, Coupon, CouponRow, Banner, NrBadge } from '../components/ui.jsx'
+import { Card, SecTitle, Note, Cta, Coupon, CouponRow, FinalCoupon, Banner } from '../components/ui.jsx'
 
 const PURPLE = '#6d35c5'
 const STEPS = ['1 · Rad', '2 · Analys', '3 · Min rad', '4 · Resultat']
@@ -88,8 +89,6 @@ export default function Nille() {
   const { s, set, show, toast, saveNille } = useApp()
   const [selIdx, setSelIdx] = useState(null)
   const [top5Open, setTop5Open] = useState(false)
-  const [budget, setBudget] = useState('192')
-  const [strategy, setStrategy] = useState('adaptive')
 
   if (!s.fetched || !ROUND.matches) {
     return (
@@ -103,6 +102,10 @@ export default function Nille() {
 
   const rad = s.nille.rad
   const step = s.nille.step
+  const budget = s.nille.budget || '192'
+  const strategy = s.nille.strategy || 'adaptive'
+  const setBudget = (b) => set((prev) => ({ nille: { ...prev.nille, budget: b } }))
+  const setStrategy = (k) => set((prev) => ({ nille: { ...prev.nille, strategy: k } }))
   const complete = rad.every((r) => r.length > 0)
   const per = complete ? analyze(s.experts, rad) : null
   const hero = per ? heroSignals(per) : null
@@ -124,9 +127,17 @@ export default function Nille() {
     }))
   }
 
-  // Rekommenderad rad i steg 3 (vald strategi + budget)
-  const recRows = per ? strategyRows(s.experts, budget === 'reduced' ? 'reduced' : +budget) : null
-  const recRad = recRows ? recRows[strategy].rad : null
+  // Rekommenderad rad i steg 3: exakt systemstorlek för vald budget.
+  // Adaptiv använder systemmotorn (rätt antal spikar/halva/hela); övriga
+  // strategier byggs mot samma radstorlek utifrån sin egen signal.
+  const pack = per ? systemForBudget(s.experts, budget) : null
+  const recRad =
+    pack && strategy === 'adaptive'
+      ? pack.rad
+      : pack
+        ? strategyRows(s.experts, budget)[strategy].rad
+        : null
+  const recCounts = recRad ? radCounts(recRad) : null
   const changes = per && recRad ? per.filter((p) => !eq(rad[p.i], recRad[p.i])) : []
 
   const allResults = s.results.every((r) => r !== null)
@@ -395,7 +406,7 @@ export default function Nille() {
           <Card>
             <div className="flex justify-between items-center gap-2 flex-wrap">
               <h3 className="m-0 text-[14px] font-bold">
-                JÄMFÖRELSE – {budget === 'reduced' ? 'BÄSTA REDUCERADE' : `${budget} KR`}
+                JÄMFÖRELSE – {pack.reduced ? `${pack.name} · BÄSTA REDUCERADE` : pack.name.toUpperCase()}
               </h3>
               <span className="bg-[#efe6fb] text-[#5b2aa8] rounded-full px-2.5 py-1 text-[11px] font-black">
                 {changes.length} ändringar
@@ -436,16 +447,72 @@ export default function Nille() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-[11px]">
             <div className="bg-white border border-line rounded-[13px] p-3"><span className="block text-muted text-[12px]">Ändringar</span><b className="text-[20px]">{changes.length}</b></div>
             <div className="bg-white border border-line rounded-[13px] p-3"><span className="block text-muted text-[12px]">Behålls</span><b className="text-[20px]">{13 - changes.length}</b></div>
-            <div className="bg-white border border-line rounded-[13px] p-3"><span className="block text-muted text-[12px]">Kostnad</span><b className="text-[20px]">{radCost(recRad)} kr</b></div>
-            <div className="bg-white border border-[#d7c5f3] rounded-[13px] p-3"><span className="block text-muted text-[12px]">Radstorlek</span><b className="text-[20px]">≤ {budgetKr(budget === 'reduced' ? 'reduced' : +budget)} rader</b></div>
+            <div className="bg-white border border-line rounded-[13px] p-3"><span className="block text-muted text-[12px]">Kostnad</span><b className="text-[20px]">{pack.reduced ? pack.rows : radCost(recRad)} kr</b></div>
+            <div className="bg-white border border-[#d7c5f3] rounded-[13px] p-3">
+              <span className="block text-muted text-[12px]">System</span>
+              <b className="text-[18px]" style={{ color: PURPLE }}>{pack.name}</b>
+              <small className="block text-muted text-[11px] mt-0.5">
+                {recCounts.hel} hel · {recCounts.halv} halv · {recCounts.spik} spikar
+              </small>
+            </div>
           </div>
+
+          {/* Färdig rekommendation som kupongvy – sista kontrollen före Spara rad */}
+          <Card>
+            <div className="flex justify-between items-start gap-2 flex-wrap">
+              <div className="min-w-0">
+                <SecTitle className="!mb-0.5">FÄRDIG REKOMMENDATION</SecTitle>
+                <h3 className="m-0 text-[14px] font-bold">
+                  REKOMMENDERAD RAD – KUPONGVY ({pack.reduced ? 'BÄSTA REDUCERADE' : pack.name.toUpperCase()})
+                </h3>
+                <Note className="mt-1">
+                  {pack.reduced
+                    ? `System ${pack.name}: exakt ${recCounts.spik} spikar, ${recCounts.halv} halvgarderingar och ${recCounts.hel} helgarderingar.`
+                    : 'Kontrollera den färdiga rekommendationen innan du sparar raden.'}
+                </Note>
+              </div>
+              <span className="shrink-0 bg-[#efe6fb] text-[#5b2aa8] rounded-full px-2.5 py-1 text-[11px] font-black">
+                {pack.reduced ? pack.rows : radCost(recRad)} rader
+              </span>
+            </div>
+
+            <div className="mt-2">
+              <FinalCoupon rows={recRad} matches={ROUND.matches} accent={PURPLE} />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+              {[
+                { l: 'Spikar', v: recCounts.spik },
+                { l: 'Halvgarderingar', v: recCounts.halv },
+                { l: 'Helgarderingar', v: recCounts.hel },
+                { l: 'Rader', v: pack.reduced ? pack.rows : radCost(recRad) },
+              ].map((x) => (
+                <div key={x.l} className="bg-white border border-line rounded-[13px] p-3">
+                  <span className="block text-muted text-[12px]">{x.l}</span>
+                  <b className="text-[20px]">{x.v}</b>
+                </div>
+              ))}
+            </div>
+
+            {pack.reduced && (
+              <div className="mt-3 rounded-[9px] border border-[#dccdf8] bg-[#f5f0ff] text-[#4c2599] px-3.5 py-3 text-[12.5px] leading-relaxed">
+                <b>{pack.name}</b> · {pack.rows} spelade rader · garanti {pack.guarantee} rätt när
+                systemets villkor uppfylls.
+                <br />
+                Fullt system hade varit {pack.fullRows} rader – reduceringen sparar{' '}
+                {pack.fullRows - pack.rows} rader.
+              </div>
+            )}
+          </Card>
 
           <div className="bg-white rounded-[13px] p-[13px] shadow-[0_2px_8px_#0001] border-l-[5px] border-[#e9a421] mb-[11px]">
             <h3 className="m-0 mb-1 text-[14px] font-bold">💡 Varför denna rad?</h3>
             <p className="m-0 text-[12.5px] leading-relaxed">
-              Modellen prioriterar de matcher där din rad går mest emot historik, värde och den
-              adaptiva rekommendationen. Förslaget bygger på databasens faktiska underlag och går
-              att ändra manuellt i huvudflödets <b>Min rad</b>.
+              {pack.reduced
+                ? `Modellen placerar helgarderingarna på de ${pack.whole} mest öppna matcherna, halvgarderingarna på nästa ${pack.half} och spikar de ${recCounts.spik} matcher som har starkast modellstöd.`
+                : 'Modellen placerar garderingarna på de mest osäkra matcherna och spikar där modellstödet är starkast inom vald radstorlek.'}{' '}
+              Förslaget bygger på databasens faktiska underlag och går att ändra manuellt i
+              huvudflödets <b>Min rad</b>.
             </p>
           </div>
         </>

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useApp } from './store.jsx'
 import { ROUND } from './lib/data.js'
-import { allFilled, expertFilled } from './lib/model.js'
+import { allFilled, expertFilled, systemForBudget } from './lib/model.js'
 import Start from './views/Start.jsx'
 import Experter from './views/Experter.jsx'
 import Analys from './views/Analys.jsx'
@@ -125,8 +125,14 @@ function BottomBar() {
   } else if (s.view === 'nille') {
     const nilleBtn = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-[#6d35c5] text-white disabled:bg-[#c8d2da] disabled:text-[#f2f5f7]'
     const step = s.nille.step
-    const labels = ['Analysera raden ›', 'Bygg min rad ›', 'Spara rad ›', 'Ny NILLE-analys']
     const radComplete = s.nille.rad.every((r) => r.length > 0)
+    // På steg 3 visar knappen vilket system som sparas
+    let saveLabel = 'Spara rad ›'
+    if (step === 2 && radComplete && ROUND.matches) {
+      const pack = systemForBudget(s.experts, s.nille.budget || '192')
+      saveLabel = pack.reduced ? `Spara ${pack.name} ›` : `Spara rad (${pack.rows} rader) ›`
+    }
+    const labels = ['Analysera raden ›', 'Bygg min rad ›', saveLabel, 'Ny NILLE-analys']
     content = (
       <>
         <button className={sec} onClick={() => show('start')}>‹ Start</button>
