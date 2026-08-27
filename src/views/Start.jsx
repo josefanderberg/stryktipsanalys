@@ -1,12 +1,13 @@
 import { useApp } from '../store.jsx'
 import { ROUND, GAMES } from '../lib/data.js'
-import { diffOf } from '../lib/model.js'
+import { diffOf, historyReady, historyCount, matchWord } from '../lib/model.js'
 import { Card, SecTitle, Note, Cta, Banner, NrBadge } from '../components/ui.jsx'
 
 export default function Start() {
-  const { s, show, fetchRound, setGame } = useApp()
+  const { s, show, fetchRound, setGame, historyRev } = useApp()
   const cfg = GAMES[s.game]
   const live = s.roundData && ROUND.source === 'live'
+  const dbMatches = historyReady() ? historyCount(s.game) : null
 
   return (
     <>
@@ -16,12 +17,16 @@ export default function Start() {
             key={key}
             onClick={() => setGame(key)}
             className={`rounded-[13px] p-2.5 text-center border-2 bg-white shadow-[0_2px_8px_#0001] ${
-              s.game === key ? 'border-go bg-[#f3fbf5]' : 'border-transparent'
+              s.game === key
+                ? key === 'europatipset'
+                  ? 'border-[#2f7f4a] bg-[#f1faf4]'
+                  : 'border-[#255c91] bg-[#eef5fc]'
+                : 'border-transparent'
             }`}
           >
             <span
               className={`mx-auto mb-1.5 w-9 h-9 rounded-full text-white flex items-center justify-center font-black text-lg ${
-                key === 'stryktipset' ? 'bg-go' : 'bg-[#1f5eb0]'
+                key === 'stryktipset' ? 'bg-[#255c91]' : 'bg-[#2f9e59]'
               }`}
             >
               {g.label[0]}
@@ -37,8 +42,8 @@ export default function Start() {
           <span className="mx-auto mb-1.5 w-9 h-9 rounded-full text-white flex items-center justify-center font-black text-lg bg-[#6d35c5]">
             N
           </span>
-          <b className="block text-[12px] leading-tight">NILLE-ANALYSEN</b>
-          <span className="text-[11px] text-muted">Din personliga rad</span>
+          <b className="block text-[12px] leading-tight">NILLE</b>
+          <span className="text-[11px] text-muted">Din egen rad</span>
         </button>
       </div>
 
@@ -57,6 +62,7 @@ export default function Start() {
         <Cta tone="blue" onClick={fetchRound}>
           HÄMTA OMGÅNG
         </Cta>
+        {s.fetchError && <Banner>{s.fetchError}</Banner>}
         {s.fetched && (
           <div className="mt-2.5 text-[13.5px] leading-[1.9]">
             <b className="text-[#17643a]">✓</b> 13 matcher
@@ -77,9 +83,15 @@ export default function Start() {
         )}
       </Card>
 
-      {s.fetched && (
+      {s.fetched && ROUND.matches && (
         <Card>
           <SecTitle>Omgångens matcher</SecTitle>
+          {ROUND.matches.some((m) => m.oddsPending || m.folkPending) && (
+            <Note className="mb-2 !text-[#8a6414]">
+              Svenska Spel har inte publicerat {ROUND.matches.filter((m) => m.oddsPending).length > 0 ? 'odds' : 'Svenska folket'}{' '}
+              för alla matcher ännu (visas som “–”). Datan kompletteras automatiskt fram till spelstopp.
+            </Note>
+          )}
           {ROUND.matches.map((m, i) => {
             const d = diffOf(i)
             return (
@@ -91,8 +103,9 @@ export default function Start() {
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] leading-snug">{m.name}</div>
                   <div className="text-[11px] text-muted mt-0.5">
-                    Folket {m.folk.join('/')} · Odds {m.odds.join('/')} · Diff{' '}
-                    <b className="text-ink">{d.total}</b>
+                    Folket {m.folkPending ? '–' : m.folk.join('/')} · Odds{' '}
+                    {m.oddsPending ? '–' : m.odds.join('/')} · Diff{' '}
+                    <b className="text-ink">{m.oddsPending || m.folkPending ? '–' : d.total}</b>
                   </div>
                 </div>
               </div>
@@ -106,16 +119,21 @@ export default function Start() {
         <b className="text-[13.5px]">↔ Databaserna hjälper varandra</b>
         <Note className="mt-1">
           Valt spel används alltid primärt. Jämförbar historik från {cfg.otherLabel} används bara
-          som sekundärt stöd när underlaget är litet – du ser det som en egen signal i
-          matchanalysen.
+          som sekundärt stöd när underlaget är litet.
+          {dbMatches !== null && (
+            <>
+              {' '}
+              Just nu innehåller {cfg.label}-databasen <b>{dbMatches} {matchWord(dbMatches)}</b>
+              {historyRev >= 0 ? '' : ''} – varje sparad omgång ger 13 till.
+            </>
+          )}
         </Note>
       </Card>
 
       <Banner>
-        Omgångsdata (matcher, Svenska folket, odds) hämtas automatiskt från Svenska Spels öppna API
-        flera gånger per dygn. Expertraderna fyller du i själv. Historiken och modellprocenten är
-        fortfarande demonstrationsvärden tills databasen byggts upp på riktigt. Inofficiell
-        prototyp utan koppling till Svenska Spel.
+        Omgångsdata hämtas automatiskt från Svenska Spels öppna API flera gånger per dygn.
+        Expertraderna fyller du i själv, och historiken byggs av era sparade omgångar i
+        molndatabasen. Inofficiell prototyp utan koppling till Svenska Spel.
       </Banner>
     </>
   )

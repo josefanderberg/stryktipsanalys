@@ -6,12 +6,14 @@ import { Card, Note, Cta, Summary, Banner, NrBadge } from '../components/ui.jsx'
 export default function Resultat() {
   const { s, set, show, fetchResults } = useApp()
 
-  if (!s.rad) {
+  if (!s.rad || !ROUND.matches) {
     return (
       <Card>
         <h2 className="m-0 mb-2 text-[17px] font-bold">Resultat</h2>
         <Note>Bygg din rad först – resultaten rättas mot den.</Note>
-        <Cta tone="blue" onClick={() => show('rad')}>Till min rad</Cta>
+        <Cta tone="blue" onClick={() => show(ROUND.matches ? 'rad' : 'start')}>
+          {ROUND.matches ? 'Till min rad' : 'Till start'}
+        </Cta>
       </Card>
     )
   }
@@ -30,9 +32,7 @@ export default function Resultat() {
       <Card>
         <h2 className="m-0 mb-2 text-[17px] font-bold">Resultat</h2>
         <Note className="mt-0">
-          {ROUND.source === 'live'
-            ? `Resultatet hämtas från Svenska Spel när omgången är färdigspelad (${ROUND.date}).`
-            : 'Demoläge – knappen fyller i demoresultat.'}
+          Resultatet hämtas från Svenska Spel när omgången är färdigspelad ({ROUND.date}).
         </Note>
         <Cta tone="blue" onClick={fetchResults}>
           HÄMTA RESULTAT

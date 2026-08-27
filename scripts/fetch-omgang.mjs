@@ -52,13 +52,26 @@ async function buildGame(game) {
     const home = ps.find((p) => p.type === 'home')?.name
     const away = ps.find((p) => p.type === 'away')?.name
     const name = home && away ? `${home} – ${away}` : String(e.eventDescription || '').replace(' - ', ' – ')
+
+    // Odds och Svenska folket publiceras successivt fram till spelstopp.
+    // Det som saknas markeras i stället för att fyllas med platshållare.
     const o = [num(e.odds?.one), num(e.odds?.x), num(e.odds?.two)]
-    const odds = o.every((x) => x > 1) ? pct3(o.map((x) => 1 / x)) : [33, 33, 34]
-    let folk = [num(e.svenskaFolket?.one), num(e.svenskaFolket?.x), num(e.svenskaFolket?.two)].map((x) =>
+    const hasOdds = o.every((x) => x > 1)
+    const f = [num(e.svenskaFolket?.one), num(e.svenskaFolket?.x), num(e.svenskaFolket?.two)].map((x) =>
       Number.isFinite(x) ? Math.round(x) : 0,
     )
-    if (folk[0] + folk[1] + folk[2] < 50) folk = odds // folket ej publicerat ännu
-    return { name, folk, odds, start: e.match?.matchStart || null }
+    const hasFolk = f[0] + f[1] + f[2] >= 50
+
+    const odds = hasOdds ? pct3(o.map((x) => 1 / x)) : hasFolk ? pct3(f) : [33, 33, 34]
+    const folk = hasFolk ? pct3(f) : odds
+    return {
+      name,
+      folk,
+      odds,
+      oddsPending: !hasOdds,
+      folkPending: !hasFolk,
+      start: e.match?.matchStart || null,
+    }
   })
 
   return {

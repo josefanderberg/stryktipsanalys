@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../store.jsx'
+import { GAMES } from '../lib/data.js'
 import { Card, SecTitle, Note, Cta, Summary, Banner } from '../components/ui.jsx'
 
 export default function Databas() {
-  const { db, newRound, toast } = useApp()
-  // null = laddar · false = gick inte att nå · [] = tomt
+  const { newRound, toast } = useApp()
+  // null = laddar · false = gick inte att nå
   const [cloud, setCloud] = useState(null)
+
   useEffect(() => {
     let alive = true
     import('../lib/db.js')
-      .then(({ loadRoundsFromCloud }) => loadRoundsFromCloud())
+      .then(async ({ loadCol }) => {
+        const [stryk, euro, nille] = await Promise.all([
+          loadCol('stryktipset'),
+          loadCol('europatipset'),
+          loadCol('nille'),
+        ])
+        return { stryk, euro, nille }
+      })
       .then((r) => alive && setCloud(r))
       .catch(() => alive && setCloud(false))
     return () => {
@@ -17,39 +26,38 @@ export default function Databas() {
     }
   }, [])
 
-  const cloudRows = Array.isArray(cloud)
-    ? cloud.map((r) => ({
-        datum: r.date || r.datum || '–',
-        spel: r.game === 'europatipset' ? 'E' : 'S',
-        matcher: r.matcher ?? 13,
-        ratt: r.ratt,
-      }))
-    : null
-  const rows = cloudRows ?? db.rounds.map((r) => ({ ...r, spel: 'S' }))
-  const tot = rows.reduce((s, r) => s + r.matcher, 0)
+  const rows =
+    cloud && cloud !== false
+      ? [
+          ...cloud.stryk.map((r) => ({ ...r, spel: 'S' })),
+          ...cloud.euro.map((r) => ({ ...r, spel: 'E' })),
+        ].sort((a, b) => (b.savedAt || '').localeCompare(a.savedAt || ''))
+      : []
+  const tot = rows.reduce((s, r) => s + (r.matcher ?? 13), 0)
+  const nilleCount = cloud && cloud !== false ? cloud.nille.length : 0
 
   return (
     <>
       <Summary
         title="DATABAS"
         items={[
-          { label: 'Sparade omgångar', value: String(rows.length) },
-          { label: 'Matcher i databasen', value: String(tot) },
+          { label: 'Sparade omgångar', value: cloud === null ? '…' : String(rows.length) },
+          { label: 'Matcher i databasen', value: cloud === null ? '…' : String(tot) },
           {
             label: 'Lagring',
-            value: cloud === null ? 'Hämtar…' : cloudRows ? '☁ Firestore' : 'Lokalt (offline)',
-            sub: cloudRows ? 'Delad mellan alla enheter' : cloud === false ? 'Molndatabasen svarade inte' : '',
+            value: cloud === null ? 'Hämtar…' : cloud === false ? 'Offline' : '☁ Firestore',
+            sub: cloud === false ? 'Molndatabasen svarade inte' : 'Delad mellan alla enheter',
           },
-          { label: 'Datapunkter per omgång', value: '13 matcher' },
+          { label: 'NILLE-rader', value: cloud === null ? '…' : String(nilleCount) },
         ]}
       />
 
       <div className="grid grid-cols-3 gap-2 mb-[11px]">
-        <div className="bg-white rounded-[13px] p-2.5 shadow-[0_2px_8px_#0001] text-center">
+        <div className="bg-white rounded-[13px] p-2.5 shadow-[0_2px_8px_#0001] text-center border-t-4 border-[#255c91]">
           <b className="block text-[12.5px]">Stryktipset</b>
           <span className="text-[11px] text-muted">6-expertmönster · primär databas</span>
         </div>
-        <div className="bg-white rounded-[13px] p-2.5 shadow-[0_2px_8px_#0001] text-center">
+        <div className="bg-white rounded-[13px] p-2.5 shadow-[0_2px_8px_#0001] text-center border-t-4 border-[#2f9e59]">
           <b className="block text-[12.5px]">Europatipset</b>
           <span className="text-[11px] text-muted">3-expertmönster · primär databas</span>
         </div>
@@ -61,29 +69,39 @@ export default function Databas() {
 
       <Card>
         <SecTitle>Sparade omgångar</SecTitle>
-        <div className="tbl-wrap"><table className="tbl">
-          <thead>
-            <tr><th>Datum</th><th>Spel</th><th>Matcher</th><th>Rätt</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            {rows.slice().reverse().map((r, i) => (
-              <tr key={i}>
-                <td>{r.datum}</td>
-                <td>{r.spel}</td>
-                <td>{r.matcher}</td>
-                <td>{r.ratt != null ? `${r.ratt}/13` : '–'}</td>
-                <td>Klar</td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-        {cloudRows && cloudRows.length === 0 && (
-          <Note className="mt-2">Molndatabasen är tom ännu – spara din första omgång under 5 · Resultat.</Note>
+        {cloud === null && <Note>Hämtar från molndatabasen…</Note>}
+        {cloud === false && (
+          <Note>Kunde inte nå molndatabasen just nu – försök igen om en stund.</Note>
+        )}
+        {cloud && cloud !== false && rows.length === 0 && (
+          <Note>
+            Databasen är tom ännu. Gå igenom flödet Start → Experter → Analys → Min rad → Resultat
+            och tryck <b>Spara i databas</b> när omgången är rättad – då läggs 13 matcher till här.
+          </Note>
+        )}
+        {rows.length > 0 && (
+          <div className="tbl-wrap"><table className="tbl">
+            <thead>
+              <tr><th>Datum</th><th>Spel</th><th>Matcher</th><th>Rätt</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i}>
+                  <td>{r.date || '–'}</td>
+                  <td>{r.spel}</td>
+                  <td>{r.matcher ?? 13}</td>
+                  <td>{r.ratt != null ? `${r.ratt}/13` : '–'}</td>
+                  <td>Klar</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
         )}
         <Note className="mt-2">
-          Per match sparas i Firestore: datum · match · expertrader · normaliserat expertmönster ·
-          Svenska folket 1/X/2 · oddsprocent 1/X/2 · differensprofil · differensintervall ·
-          faktiskt resultat · din rad.
+          Per match sparas: datum · match · expertrader · normaliserat expertmönster · Svenska
+          folket 1/X/2 · oddsprocent 1/X/2 · differensprofil · differensintervall · faktiskt
+          resultat · din rad. {GAMES.stryktipset.label} och {GAMES.europatipset.label} hålls i
+          separata databaser, och NILLE-raderna i en egen.
         </Note>
       </Card>
 
@@ -91,14 +109,14 @@ export default function Databas() {
         <SecTitle>Därför växer värdet</SecTitle>
         <Note className="!text-[12.5px]">
           Varje omgång ger 13 nya datapunkter. Efter 100 kuponger finns 1 300 matcher, efter 500
-          kuponger 6 500. Först då går det att se vilka expertmönster som har prediktivt värde och
-          vilka som mest är brus – och att kalibrera modellens vikter mot verkliga resultat.
+          kuponger 6 500. Modellen räknar redan nu på den riktiga historiken – ju mer ni sparar,
+          desto större vikt får mönstren jämfört med oddsen.
         </Note>
       </Card>
 
       <Banner>
-        Procenten i prototypen är demonstrationsvärden och ska inte ses som kalibrerade
-        vinstsannolikheter.
+        Analysprocenten bygger på databasens faktiska innehåll. Med litet underlag väger
+        oddsen tyngst – det redovisas öppet i varje matchanalys.
       </Banner>
 
       <Cta

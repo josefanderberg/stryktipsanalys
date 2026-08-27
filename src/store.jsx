@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { emptyExperts, setRound, resetRound, DEMO_RESULTS, DEMO_NILLE, GAMES, ROUND, SIGNS } from './lib/data.js'
-import { patternOf, diffOf, intervalOf, signStr, comboKey } from './lib/model.js'
+import { emptyExperts, emptyRad, setRound, resetRound, GAMES, ROUND, SIGNS } from './lib/data.js'
+import { patternOf, diffOf, intervalOf, signStr, comboKey, setHistory } from './lib/model.js'
 
 const VIEWS = ['start', 'experter', 'analys', 'match', 'rad', 'resultat', 'databas', 'nille']
 
@@ -8,23 +8,16 @@ const defaultState = (game = 'stryktipset') => ({
   view: 'start',
   game,
   fetched: false,
+  fetchError: null,
   currentExpert: 0,
   experts: emptyExperts(GAMES[game].experts),
-  budget: 288,
+  budget: 192,
   rad: null,
   results: Array(13).fill(null),
   saved: false,
   detail: 0,
   roundData: null,
-  nille: { step: 0, rad: DEMO_NILLE.map((r) => r.slice()) },
-})
-
-const demoDb = () => ({
-  rounds: [
-    { datum: '2026-07-25', matcher: 13, ratt: 9 },
-    { datum: '2026-08-01', matcher: 13, ratt: 10 },
-    { datum: '2026-08-08', matcher: 13, ratt: 8 },
-  ],
+  nille: { step: 0, rad: emptyRad(), saved: false },
 })
 
 function load(key) {
@@ -40,7 +33,7 @@ const Ctx = createContext(null)
 
 export function AppProvider({ children }) {
   const [s, setS] = useState(() => {
-    const saved = load('sta3_state')
+    const saved = load('sta4_state')
     if (saved && VIEWS.includes(saved.view) && GAMES[saved.game || 'stryktipset']) {
       const merged = { ...defaultState(saved.game || 'stryktipset'), ...saved }
       if (merged.roundData) setRound(merged.roundData, merged.game)
@@ -48,20 +41,36 @@ export function AppProvider({ children }) {
     }
     return defaultState()
   })
-  const [db, setDb] = useState(() => load('sta3_db') || demoDb())
+  const [historyRev, setHistoryRev] = useState(0)
   const [toastMsg, setToastMsg] = useState(null)
   const timer = useRef()
 
   useEffect(() => {
     try {
-      localStorage.setItem('sta3_state', JSON.stringify(s))
+      localStorage.setItem('sta4_state', JSON.stringify(s))
     } catch { /* privat läge m.m. */ }
   }, [s])
+
+  // Ladda hela historiken från Firestore en gång vid start –
+  // modellen räknar sedan på riktiga sparade omgångar.
   useEffect(() => {
-    try {
-      localStorage.setItem('sta3_db', JSON.stringify(db))
-    } catch { /* privat läge m.m. */ }
-  }, [db])
+    let alive = true
+    import('./lib/db.js')
+      .then(({ loadAllHistory }) => loadAllHistory())
+      .then((h) => {
+        if (!alive) return
+        setHistory(h)
+        setHistoryRev((r) => r + 1)
+      })
+      .catch(() => {
+        if (!alive) return
+        setHistory({ stryktipset: [], europatipset: [] })
+        setHistoryRev((r) => r + 1)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const set = (patch) =>
     setS((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }))
@@ -77,7 +86,7 @@ export function AppProvider({ children }) {
     timer.current = setTimeout(() => setToastMsg(null), 2600)
   }
 
-  // Byt spelform: omgångsdata, expertrader och rad nollställs, databasen behålls
+  // Byt spelform: omgångsdata, expertrader och rad nollställs
   const setGame = (game) => {
     if (game === s.game) return
     resetRound(game)
@@ -85,8 +94,7 @@ export function AppProvider({ children }) {
     toast(GAMES[game].label + ' valt – hämta omgången')
   }
 
-  // Hämtar aktuell omgång (bakad JSON från Svenska Spels API via GitHub Actions).
-  // Faller tillbaka på demodata om filen saknas eller ingen omgång är öppen.
+  // Hämtar aktuell omgång (bakad JSON från Svenska Spels API via GitHub Actions)
   const fetchRound = async () => {
     const game = s.game
     try {
@@ -95,8 +103,7 @@ export function AppProvider({ children }) {
       const data = await r.json()
       if (data.available === false) {
         resetRound(game)
-        set({ fetched: true, roundData: null })
-        toast(`Ingen aktuell ${GAMES[game].label}-omgång just nu – visar demodata`)
+        set({ fetched: false, roundData: null, fetchError: `Ingen ${GAMES[game].label}-omgång är öppen just nu. Nästa omgång hämtas automatiskt när Svenska Spel öppnar den.` })
         return false
       }
       if (!setRound(data, game)) throw new Error()
@@ -104,6 +111,7 @@ export function AppProvider({ children }) {
         const newDraw = prev.roundData?.drawNumber !== data.drawNumber
         return {
           fetched: true,
+          fetchError: null,
           roundData: data,
           ...(newDraw
             ? {
@@ -112,7 +120,7 @@ export function AppProvider({ children }) {
                 rad: null,
                 results: Array(13).fill(null),
                 saved: false,
-                nille: { step: 0, rad: DEMO_NILLE.map((x) => x.slice()) },
+                nille: { step: 0, rad: emptyRad(), saved: false },
               }
             : {}),
         }
@@ -121,17 +129,15 @@ export function AppProvider({ children }) {
       return true
     } catch {
       resetRound(game)
-      set({ fetched: true, roundData: null })
-      toast('Kunde inte nå datakällan – visar demodata')
+      set({ fetched: false, roundData: null, fetchError: 'Kunde inte nå datakällan – kontrollera uppkopplingen och försök igen.' })
       return false
     }
   }
 
-  // Hämtar resultat för den omgång användaren arbetar med, när det finns.
+  // Hämtar resultat för den omgång användaren arbetar med, när det finns
   const fetchResults = async () => {
     if (!s.roundData) {
-      set({ results: DEMO_RESULTS.slice(), saved: false })
-      toast('Demoresultat ifyllda')
+      toast('Hämta omgången först')
       return
     }
     try {
@@ -147,21 +153,20 @@ export function AppProvider({ children }) {
         set({ results: outcomes.map((o) => map[o]), saved: false })
         toast('Resultat hämtade från Svenska Spel')
       } else {
-        toast('Resultatet är inte klart ännu – omgången avgörs ' + (s.roundData.date || 'på lördag'))
+        toast('Resultatet är inte klart ännu – omgången avgörs ' + (s.roundData.date || 'på matchdagen'))
       }
     } catch {
       toast('Kunde inte hämta resultat just nu')
     }
   }
 
-  // Spara omgången: fullt dataset till Firestore + sammanfattning lokalt som cache
+  // Spara omgången: fullt dataset till spelets egen Firestore-samling
   const saveRound = async () => {
-    if (s.saved || !s.rad) return
+    if (s.saved || !s.rad || !ROUND.matches) return
     const hits = s.results.filter((r, i) => s.rad[i].includes(r)).length
-    setDb({ rounds: [...db.rounds, { datum: ROUND.date || '–', matcher: 13, ratt: hits }] })
     set({ saved: true })
     const payload = {
-      id: `${s.game}-${ROUND.drawNumber ?? 'demo-' + ROUND.date}`,
+      id: `omgang-${ROUND.drawNumber}`,
       game: s.game,
       drawNumber: ROUND.drawNumber,
       label: ROUND.label,
@@ -185,11 +190,37 @@ export function AppProvider({ children }) {
       })),
     }
     try {
-      const { saveRoundToCloud } = await import('./lib/db.js')
-      await saveRoundToCloud(payload)
-      toast('Omgången sparad i molndatabasen ✓ 13 datapunkter')
+      const { saveDocTo, loadAllHistory } = await import('./lib/db.js')
+      await saveDocTo(s.game, payload)
+      toast('Omgången sparad i databasen ✓ 13 datapunkter')
+      // Uppdatera historiken som modellen räknar på
+      const h = await loadAllHistory()
+      setHistory(h)
+      setHistoryRev((r) => r + 1)
     } catch {
-      toast('Sparad lokalt – nådde inte molndatabasen just nu')
+      set({ saved: false })
+      toast('Kunde inte spara – kontrollera uppkopplingen och försök igen')
+    }
+  }
+
+  // Spara Nilles rad i NILLE-databasen
+  const saveNille = async () => {
+    if (s.nille.saved || !ROUND.matches) return
+    const payload = {
+      id: `nille-${s.game}-${ROUND.drawNumber}`,
+      game: s.game,
+      drawNumber: ROUND.drawNumber,
+      date: ROUND.date,
+      savedAt: new Date().toISOString(),
+      rad: s.nille.rad.map(signStr),
+    }
+    try {
+      const { saveDocTo } = await import('./lib/db.js')
+      await saveDocTo('nille', payload)
+      set((prev) => ({ nille: { ...prev.nille, saved: true } }))
+      toast('NILLE-raden sparad i databasen ✓')
+    } catch {
+      toast('Kunde inte spara NILLE-raden just nu')
     }
   }
 
@@ -201,7 +232,7 @@ export function AppProvider({ children }) {
 
   return (
     <Ctx.Provider
-      value={{ s, set, show, db, setDb, toastMsg, toast, newRound, fetchRound, fetchResults, setGame, saveRound }}
+      value={{ s, set, show, toastMsg, toast, newRound, fetchRound, fetchResults, setGame, saveRound, saveNille, historyRev }}
     >
       {children}
     </Ctx.Provider>

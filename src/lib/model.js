@@ -42,21 +42,6 @@ export const expertFilled = (experts, ei) => experts[ei].every((c) => c.length >
 export const filledCount = (experts, ei) => experts[ei].filter((c) => c.length > 0).length
 export const allFilled = (experts) => experts.every((_, i) => expertFilled(experts, i))
 
-function hash(s) {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 16777619) >>> 0
-  }
-  return h
-}
-function makeRng(seed) {
-  let s = seed || 1
-  return () => {
-    s = (Math.imul(s, 1103515245) + 12345) >>> 0
-    return s / 4294967296
-  }
-}
 // Normalisera till heltal som summerar till 100
 function pct3(a) {
   const t = a[0] + a[1] + a[2] || 1
@@ -68,103 +53,100 @@ function pct3(a) {
 export const starStr = (n) => '★'.repeat(n) + '☆'.repeat(5 - n)
 export const relStars = (n) => (n >= 100 ? 5 : n >= 60 ? 4 : n >= 30 ? 3 : n >= 12 ? 2 : 1)
 export const signStr = (signs) => signs.map((i) => SIGNS[i]).join('')
+export const matchWord = (n) => (n === 1 ? 'match' : 'matcher')
 
-/* ---------- Demodatabas: historik per expertmönster ---------- */
+/* ---------- Riktig historik från Firestore ---------- */
 
-const HIST_CACHE = new Map()
+let HISTORY = { stryktipset: [], europatipset: [], loaded: false }
+
+export const setHistory = (h) => {
+  HISTORY = {
+    stryktipset: h.stryktipset || [],
+    europatipset: h.europatipset || [],
+    loaded: true,
+  }
+}
+export const historyReady = () => HISTORY.loaded
+export const historyCount = (game) => (HISTORY[game] || []).length
+
+// Utfallsfördelning för ett urval sparade matcher – null när underlag saknas
+function dist(entries) {
+  if (!entries.length) return null
+  const c = [0, 0, 0]
+  entries.forEach((e) => {
+    const i = SIGNS.indexOf(e.resultat)
+    if (i >= 0) c[i]++
+  })
+  return c[0] + c[1] + c[2] ? pct3(c) : null
+}
+
+function parsePattern(p) {
+  const out = {}
+  String(p || '')
+    .split(' · ')
+    .forEach((part) => {
+      const [k, n] = part.split('×')
+      if (k) out[k] = +n || 0
+    })
+  return out
+}
+
+// Andel gemensamma expertval mellan två mönster (0–1)
+function patternSim(a, b) {
+  const A = parsePattern(a)
+  const B = parsePattern(b)
+  const size = Object.values(A).reduce((s, x) => s + x, 0)
+  if (!size) return 0
+  let overlap = 0
+  Object.keys(A).forEach((k) => (overlap += Math.min(A[k], B[k] || 0)))
+  return overlap / size
+}
 
 export function historyFor(experts, mi) {
   const pattern = patternOf(experts, mi)
   const iv = intervalOf(diffOf(mi).total)
-  const key = `${ROUND.game}|${ROUND.drawNumber ?? 'demo'}|${pattern}|${iv}`
-  if (HIST_CACHE.has(key)) return HIST_CACHE.get(key)
-
-  let h
-  if (pattern === '1×2 · 1X×3 · X2×1') {
-    // Exemplet från kravspecifikationen (Match 7)
-    h = {
-      pattern,
-      total: 126,
-      base: [49, 27, 24],
-      intervals: [
-        { label: '0–9', n: 18, p: [39, 33, 28] },
-        { label: '10–19', n: 47, p: [62, 17, 21] },
-        { label: '20–29', n: 39, p: [43, 31, 26] },
-        { label: '30–39', n: 22, p: [32, 23, 45] },
-        { label: '40+', n: 0, p: [0, 0, 0] },
-      ],
-      sim: [
-        { label: '100 % samma mönster', n: 126, p: [49, 27, 24] },
-        { label: '95–99 % likhet', n: 241, p: [47, 27, 26] },
-        { label: '90–94 % likhet', n: 514, p: [44, 28, 28] },
-      ],
-      cross: { n: 36, p: [45, 28, 27] },
-    }
-  } else {
-    const rng = makeRng(hash(pattern || 'tom rad'))
-    const v = votesOf(experts, mi)
-    const prior = [0.38, 0.3, 0.32]
-    let base = v.map((x, i) => 0.65 * x + 0.35 * prior[i] + (rng() - 0.5) * 0.08)
-    base = pct3(base.map((x) => Math.max(0.05, x)))
-    const total = 40 + Math.floor(rng() * 160)
-    const wInt = [0.16, 0.3, 0.26, 0.18, 0.1].map((x) => x * (0.7 + rng() * 0.6))
-    const wSum = wInt.reduce((a, b) => a + b, 0)
-    const counts = wInt.map((x) => Math.max(3, Math.round((total * x) / wSum)))
-    counts[4] = Math.max(0, total - counts[0] - counts[1] - counts[2] - counts[3])
-    const top = base.indexOf(Math.max(...base))
-    const intervals = INTERVALS.map((label, k) => {
-      const p = base.map((x) => Math.max(3, x + (rng() - 0.5) * 16))
-      if (label === iv) p[top] += 6 + rng() * 8
-      return { label, n: counts[k], p: pct3(p) }
-    })
-    const pull = (a, b, f) => a.map((x, i) => x * (1 - f) + b[i] * f)
-    const priorPct = prior.map((x) => x * 100)
-    const sim = [
-      { label: '100 % samma mönster', n: total, p: base },
-      { label: '95–99 % likhet', n: Math.round(total * (1.7 + rng() * 0.6)), p: pct3(pull(base, priorPct, 0.3)) },
-      { label: '90–94 % likhet', n: Math.round(total * (3.2 + rng() * 1.2)), p: pct3(pull(base, priorPct, 0.5)) },
-    ]
-    // Sekundärt stöd: jämförbar historik från den andra spelformen
-    const cross = { n: 8 + Math.floor(rng() * 40), p: pct3(pull(base, priorPct, 0.4)) }
-    h = { pattern, total, base, intervals, sim, cross }
+  const own = HISTORY[ROUND.game] || []
+  const other = HISTORY[GAMES[ROUND.game].other] || []
+  const exact = pattern ? own.filter((e) => e.monster === pattern) : []
+  const inIv = exact.filter((e) => e.intervall === iv)
+  const similar = pattern
+    ? own.filter((e) => e.monster !== pattern && patternSim(pattern, e.monster) >= 0.66)
+    : []
+  const crossE = other.filter((e) => e.intervall === iv)
+  return {
+    pattern,
+    iv,
+    total: exact.length,
+    base: dist(exact),
+    ih: { n: inIv.length, p: dist(inIv) },
+    intervals: INTERVALS.map((label) => {
+      const es = exact.filter((e) => e.intervall === label)
+      return { label, n: es.length, p: dist(es) }
+    }),
+    sim: { n: similar.length, p: dist(similar) },
+    cross: { n: crossE.length, p: dist(crossE) },
+    samples: exact.slice(0, 5).map((e) => ({ datum: e.datum, diff: e.intervall, res: e.resultat })),
   }
-
-  // Exempelrader till "Visa historiska matcher"
-  const rng2 = makeRng(hash(`${key}::rows`))
-  const ivRow = h.intervals.find((x) => x.label === iv) || { p: h.base }
-  h.samples = Array.from({ length: 5 }, () => {
-    const day = 1 + Math.floor(rng2() * 28)
-    const mon = 1 + Math.floor(rng2() * 12)
-    const lik = rng2() < 0.6 ? '100%' : rng2() < 0.5 ? '95–99%' : '90–94%'
-    const lo = iv === '0–9' ? 0 : iv === '10–19' ? 10 : iv === '20–29' ? 20 : iv === '30–39' ? 30 : 40
-    const dTot = lo + Math.floor(rng2() * 10)
-    const r = rng2() * 100
-    const res = r < ivRow.p[0] ? '1' : r < ivRow.p[0] + ivRow.p[1] ? 'X' : '2'
-    return { datum: `${day}/${mon}`, lik, diff: dTot, res }
-  })
-
-  HIST_CACHE.set(key, h)
-  return h
 }
 
 /* ---------- Modellbedömning ---------- */
 
+// Vikterna skalas med underlagets storlek; det som saknas i historik
+// bärs av oddsprocenten. Tom databas ⇒ modellen = marknaden.
 export function modelFor(experts, mi) {
   const h = historyFor(experts, mi)
-  const iv = intervalOf(diffOf(mi).total)
-  const ih = h.intervals.find((x) => x.label === iv) || { n: 0, p: h.base }
-  const odds = ROUND.matches[mi].odds
-  const sim = h.sim[2].p
-  // Prototypvikter – kalibreras mot verkliga resultat när databasen växer.
-  // Differenshistoriken viktas ned när underlaget är litet.
-  const wD = 0.4 * Math.min(1, ih.n / 30)
-  const wB = 0.2
-  const wS = 0.15
-  const wO = 1 - wD - wB - wS
+  const m = ROUND.matches[mi]
+  const parts = [
+    { key: 'diff', label: 'Mönster + dagens differens', p: h.ih.p, n: h.ih.n, w: 0.4 * Math.min(1, h.ih.n / 30) },
+    { key: 'base', label: 'Exakt mönster', p: h.base, n: h.total, w: 0.2 * Math.min(1, h.total / 20) },
+    { key: 'sim', label: 'Liknande mönster', p: h.sim.p, n: h.sim.n, w: 0.15 * Math.min(1, h.sim.n / 20) },
+    { key: 'cross', label: `Stöd från ${GAMES[ROUND.game].otherLabel}`, p: h.cross.p, n: h.cross.n, w: 0.1 * Math.min(1, h.cross.n / 20) },
+  ].filter((x) => x.p && x.w > 0)
+  const wO = 1 - parts.reduce((s, x) => s + x.w, 0)
   const score = pct3(
-    [0, 1, 2].map((i) => wD * ih.p[i] + wB * h.base[i] + wS * sim[i] + wO * odds[i]),
+    [0, 1, 2].map((i) => wO * m.odds[i] + parts.reduce((s, x) => s + x.w * x.p[i], 0)),
   )
-  return { score, iv, ih, h, weights: { wD, wB, wS, wO } }
+  return { score, iv: h.iv, ih: h.ih, h, weights: { parts, wO } }
 }
 
 export function recFor(experts, mi) {
@@ -200,7 +182,7 @@ export function recFor(experts, mi) {
 /* ---------- Kuponganalysens lyftpunkter ---------- */
 
 export function highlights(experts) {
-  if (!allFilled(experts)) return null
+  if (!allFilled(experts) || !ROUND.matches) return null
   const hl = {}
   let v
 
@@ -288,28 +270,28 @@ export function signsFromDist(p) {
   return [ord[0], ord[1]].sort((a, b) => a - b)
 }
 
-// Signalerna för en match (inkl. sekundärt stöd från den andra spelformen)
+// Signalerna för en match (null-p = underlag saknas ännu)
 export function signalsFor(experts, mi) {
-  const { score, ih, h } = modelFor(experts, mi)
+  const { score, h } = modelFor(experts, mi)
   const other = GAMES[ROUND.game]?.otherLabel || 'andra spelet'
   return {
     hist: { p: h.base, n: h.total, label: 'Historiskt mönster' },
-    diff: { p: ih.p, n: ih.n, label: 'Mönster + differens' },
-    sim: { p: h.sim[2].p, n: h.sim[2].n, label: 'Liknande mönster' },
+    diff: { p: h.ih.p, n: h.ih.n, label: 'Mönster + differens' },
+    sim: { p: h.sim.p, n: h.sim.n, label: 'Liknande mönster' },
     cross: { p: h.cross.p, n: h.cross.n, label: `Stöd från ${other}` },
-    model: { p: score, n: ih.n, label: 'Sammanvägd modell' },
+    model: { p: score, n: h.ih.n, label: 'Sammanvägd modell' },
   }
 }
 
-// Adaptiv strategi: välj per match den signal som har starkast stöd,
-// där topprocenten viktas med hur stort det historiska underlaget är.
+// Adaptiv strategi: den signal som har starkast stöd, viktat med underlaget.
+// Utan historik faller den tillbaka på den sammanvägda modellen (= marknaden).
 export function adaptiveChoice(experts, mi) {
   const sig = signalsFor(experts, mi)
   const cand = [
-    { key: 'hist', ...sig.hist, strength: Math.max(...sig.hist.p) * Math.min(1, sig.hist.n / 60) },
-    { key: 'diff', ...sig.diff, strength: Math.max(...sig.diff.p) * Math.min(1, sig.diff.n / 30) },
+    sig.hist.p && { key: 'hist', ...sig.hist, strength: Math.max(...sig.hist.p) * Math.min(1, sig.hist.n / 60) },
+    sig.diff.p && { key: 'diff', ...sig.diff, strength: Math.max(...sig.diff.p) * Math.min(1, sig.diff.n / 30) },
     { key: 'model', ...sig.model, strength: Math.max(...sig.model.p) * 0.85 },
-  ]
+  ].filter(Boolean)
   cand.sort((a, b) => b.strength - a.strength)
   return cand[0]
 }
@@ -340,15 +322,20 @@ function buildRadFromDists(dists, budget) {
   return chosen.map((c) => c.slice().sort((a, b) => a - b))
 }
 
+// "Bästa reducerade" utgår från 192-systemet tills en riktig reduceringsmotor finns
+export const budgetKr = (budget) => (budget === 'reduced' ? 192 : budget)
+
 // Alla fyra strategiernas rader, byggda för samma budget
 export function strategyRows(experts, budget) {
+  const kr = budgetKr(budget)
   const sig = ROUND.matches.map((_, i) => signalsFor(experts, i))
   const adaptive = ROUND.matches.map((_, i) => adaptiveChoice(experts, i))
+  const or = (p, i) => p || ROUND.matches[i].odds
   return {
-    adaptive: { rad: buildRadFromDists(adaptive.map((a) => a.p), budget), sources: adaptive },
-    hist: { rad: buildRadFromDists(sig.map((x) => x.hist.p), budget) },
-    diff: { rad: buildRadFromDists(sig.map((x) => x.diff.p), budget) },
-    model: { rad: buildRadFromDists(sig.map((x) => x.model.p), budget) },
+    adaptive: { rad: buildRadFromDists(adaptive.map((a, i) => or(a.p, i)), kr), sources: adaptive },
+    hist: { rad: buildRadFromDists(sig.map((x, i) => or(x.hist.p, i)), kr) },
+    diff: { rad: buildRadFromDists(sig.map((x, i) => or(x.diff.p, i)), kr) },
+    model: { rad: buildRadFromDists(sig.map((x, i) => or(x.model.p, i)), kr) },
   }
 }
 

@@ -1,5 +1,7 @@
 // Molndatabas: Firestore i användarens Firebase-projekt.
-// Webb-configen är publik per design – åtkomsten styrs av Firestore-reglerna.
+// Tre samlingar: "stryktipset" och "europatipset" (en sparad omgång per dokument)
+// samt "nille" (Nilles rader och utfall). Webb-configen är publik per design –
+// åtkomsten styrs av Firestore-reglerna.
 import { initializeApp } from 'firebase/app'
 import {
   getFirestore, collection, doc, setDoc, getDocs, query, orderBy, limit,
@@ -17,14 +19,33 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const fsdb = getFirestore(app)
 
-// En sparad omgång = ett dokument i samlingen "omgangar"
-export async function saveRoundToCloud(payload) {
-  await setDoc(doc(fsdb, 'omgangar', payload.id), payload)
+export async function saveDocTo(col, payload) {
+  await setDoc(doc(fsdb, col, payload.id), payload)
 }
 
-export async function loadRoundsFromCloud() {
-  const snap = await getDocs(
-    query(collection(fsdb, 'omgangar'), orderBy('savedAt', 'desc'), limit(200)),
-  )
+export async function loadCol(col) {
+  const snap = await getDocs(query(collection(fsdb, col), orderBy('savedAt', 'desc'), limit(300)))
   return snap.docs.map((d) => d.data())
+}
+
+// Historiken som modellen räknar på: alla sparade matcher per spelform.
+export async function loadAllHistory() {
+  const [stryk, euro] = await Promise.all([loadCol('stryktipset'), loadCol('europatipset')])
+  const flat = (rounds, game) =>
+    rounds.flatMap((r) =>
+      (r.matchdata || []).map((m) => ({
+        game,
+        datum: r.date || '',
+        monster: m.monster || '',
+        intervall: m.intervall || '',
+        resultat: m.resultat,
+        folk: m.folk,
+        odds: m.odds,
+      })),
+    )
+  return {
+    stryktipset: flat(stryk, 'stryktipset'),
+    europatipset: flat(euro, 'europatipset'),
+    rounds: { stryktipset: stryk, europatipset: euro },
+  }
 }

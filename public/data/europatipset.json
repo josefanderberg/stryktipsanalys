@@ -1,4 +1,220 @@
 {
- "available": false,
- "updated": "2026-08-23T18:11:32.962Z"
+ "available": true,
+ "updated": "2026-08-27T19:57:36.252Z",
+ "drawNumber": 2603,
+ "label": "Europatipset v 35, stänger 2026-08-30 14:59",
+ "date": "2026-08-30",
+ "closeTime": "2026-08-30T14:59:00+02:00",
+ "matches": [
+  {
+   "name": "Manchester United – Ipswich",
+   "folk": [
+    82,
+    10,
+    8
+   ],
+   "odds": [
+    69,
+    19,
+    12
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T17:30:00+02:00"
+  },
+  {
+   "name": "Chelsea – Brighton",
+   "folk": [
+    66,
+    22,
+    12
+   ],
+   "odds": [
+    50,
+    26,
+    24
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T15:00:00+02:00"
+  },
+  {
+   "name": "Leeds – Brentford",
+   "folk": [
+    34,
+    33,
+    33
+   ],
+   "odds": [
+    38,
+    28,
+    34
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T15:00:00+02:00"
+  },
+  {
+   "name": "Sunderland – Fulham",
+   "folk": [
+    46,
+    27,
+    27
+   ],
+   "odds": [
+    39,
+    29,
+    32
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T15:00:00+02:00"
+  },
+  {
+   "name": "Napoli – Como",
+   "folk": [
+    65,
+    25,
+    10
+   ],
+   "odds": [
+    40,
+    30,
+    30
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T18:30:00+02:00"
+  },
+  {
+   "name": "Cagliari – Inter",
+   "folk": [
+    10,
+    21,
+    69
+   ],
+   "odds": [
+    13,
+    21,
+    66
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T20:45:00+02:00"
+  },
+  {
+   "name": "Lazio – Genoa",
+   "folk": [
+    78,
+    14,
+    8
+   ],
+   "odds": [
+    49,
+    30,
+    21
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T20:45:00+02:00"
+  },
+  {
+   "name": "Deportivo A Coruña – Valencia",
+   "folk": [
+    27,
+    25,
+    48
+   ],
+   "odds": [
+    37,
+    31,
+    32
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T19:30:00+02:00"
+  },
+  {
+   "name": "Celta de Vigo – Athletic Bilbao",
+   "folk": [
+    35,
+    27,
+    38
+   ],
+   "odds": [
+    40,
+    29,
+    31
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T21:30:00+02:00"
+  },
+  {
+   "name": "Augsburg – Schalke 04",
+   "folk": [
+    65,
+    22,
+    13
+   ],
+   "odds": [
+    45,
+    25,
+    30
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T17:30:00+02:00"
+  },
+  {
+   "name": "Freiburg – Werder Bremen",
+   "folk": [
+    63,
+    20,
+    17
+   ],
+   "odds": [
+    47,
+    26,
+    27
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T15:30:00+02:00"
+  },
+  {
+   "name": "Monaco – Marseille",
+   "folk": [
+    26,
+    28,
+    46
+   ],
+   "odds": [
+    39,
+    26,
+    35
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T20:45:00+02:00"
+  },
+  {
+   "name": "IFK Göteborg – Örgryte",
+   "folk": [
+    60,
+    23,
+    17
+   ],
+   "odds": [
+    62,
+    21,
+    17
+   ],
+   "oddsPending": false,
+   "folkPending": false,
+   "start": "2026-08-30T16:30:00+02:00"
+  }
+ ],
+ "result": null,
+ "prevResult": null
 }

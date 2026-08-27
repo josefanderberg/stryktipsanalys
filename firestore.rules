@@ -1,9 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Prototypen sparar omgångar här. Öppet för läs/skriv utan inloggning –
-    // begränsat till just denna samling. Övriga samlingar förblir låsta.
-    match /omgangar/{id} {
+    // Tre separata databaser: en per spelform + NILLE:s personliga.
+    // Öppna för läs/skriv utan inloggning (prototyp) – allt annat förblir låst.
+    match /stryktipset/{id} {
+      allow read, write: if true;
+    }
+    match /europatipset/{id} {
+      allow read, write: if true;
+    }
+    match /nille/{id} {
       allow read, write: if true;
     }
     match /{document=**} {

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../store.jsx'
-import { ROUND, SIGNS, STRATEGY_PERF } from '../lib/data.js'
+import { ROUND, SIGNS } from '../lib/data.js'
 import {
-  allFilled, radCost, radCounts, recFor, signStr, strategyRows, STRATEGIES,
+  allFilled, radCost, radCounts, recFor, signStr, strategyRows, STRATEGIES, budgetKr,
 } from '../lib/model.js'
 import { Card, SecTitle, Note, Cta, DetailBtn, Coupon, CouponRow, NrBadge } from '../components/ui.jsx'
 
@@ -39,11 +39,20 @@ export default function Rad() {
     if (filled && !s.rad) set({ rad: strategyRows(s.experts, s.budget).adaptive.rad })
   }, [filled, s.rad]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (!s.fetched || !ROUND.matches) {
+    return (
+      <Card>
+        <h2 className="m-0 mb-2 text-[17px] font-bold">Min rad</h2>
+        <Note>Hämta först omgången under <b>Start</b>.</Note>
+        <Cta tone="blue" onClick={() => show('start')}>Till start</Cta>
+      </Card>
+    )
+  }
   if (!filled) {
     return (
       <Card>
         <h2 className="m-0 mb-2 text-[17px] font-bold">Min rad</h2>
-        <Note>Fyll i alla sex expertrader och analysera kupongen först.</Note>
+        <Note>Fyll i alla expertrader och analysera kupongen först.</Note>
         <Cta tone="blue" onClick={() => show('experter')}>Till expertraderna</Cta>
       </Card>
     )
@@ -52,7 +61,7 @@ export default function Rad() {
 
   const cost = radCost(s.rad)
   const c = radCounts(s.rad)
-  const over = cost > s.budget
+  const over = cost > budgetKr(s.budget)
 
   // Enighet mellan strategierna, match för match
   const rowsOf = (key) => strat[key].rad
@@ -94,7 +103,7 @@ export default function Rad() {
 
   const copyRad = () => {
     const txt =
-      `STRYKTIPSET ${ROUND.date} – MIN RAD\n` +
+      `${ROUND.label} – MIN RAD\n` +
       ROUND.matches.map((m, i) => `${i + 1}. ${m.name}: ${signStr(s.rad[i])}`).join('\n') +
       `\nSystempris: ${cost} kr · Spikar ${c.spik} · Halva ${c.halv} · Hela ${c.hel}`
     const done = () => toast('Raden kopierad – klistra in hos Svenska Spel')
@@ -121,7 +130,7 @@ export default function Rad() {
         <h2 className="m-0 mb-2 text-[17px] font-bold">Budget</h2>
         <SecTitle>Hur mycket vill du spela för?</SecTitle>
         <div className="flex gap-[7px] flex-wrap mt-2">
-          {[96, 144, 288, 432, 576].map((b) => (
+          {[128, 192, 256, 'reduced'].map((b) => (
             <button
               key={b}
               onClick={() => set({ budget: b, rad: null, saved: false })}
@@ -129,13 +138,14 @@ export default function Rad() {
                 s.budget === b ? 'bg-royal border-royal text-white' : 'bg-white border-line text-[#153b61]'
               }`}
             >
-              {b} kr
+              {b === 'reduced' ? '⭐ Bästa reducerade' : `${b} kr`}
             </button>
           ))}
         </div>
         <Note className="mt-2">
-          Alla strategier bygger sin rad för samma budget (1 kr per rad), så att de går att jämföra
-          rättvist. Din egen rad kan du sedan ändra tecken för tecken.
+          {s.budget === 'reduced'
+            ? 'Bästa reducerade utgår från 192-systemet och reduceras efter modellens starkaste villkor när reduceringsmotorn kopplas på.'
+            : 'Alla fyra strategier byggs om till vald radstorlek (1 kr per rad). 192 kr är standard och ★ Adaptiv är standardstrategi. Din egen rad kan du sedan ändra tecken för tecken.'}
         </Note>
       </Card>
 
@@ -173,6 +183,13 @@ export default function Rad() {
       <div className="border border-[#cbd9e6] bg-[#f9fbfd] rounded-[10px] p-3 mb-[11px] text-[13px]">
         <b>Strategierna är överens i {agree} av 13 matcher</b>
         <span className="text-muted"> · {13 - agree} matcher kan förändra kupongen.</span>
+        {agree === 13 && (
+          <Note className="mt-1.5">
+            Alla strategier ger samma rad så länge databasen saknar historik för omgångens
+            expertmönster – då bygger de på samma odds och differens. De börjar skilja sig så fort
+            ni sparat omgångar.
+          </Note>
+        )}
       </div>
 
       <Card>
@@ -258,7 +275,7 @@ export default function Rad() {
       )}
 
       <Card>
-        <h2 className="m-0 mb-2 text-[17px] font-bold">MIN RAD – {s.budget} KR</h2>
+        <h2 className="m-0 mb-2 text-[17px] font-bold">MIN RAD – {s.budget === "reduced" ? "BÄSTA REDUCERADE" : `${s.budget} KR`}</h2>
         {ROUND.matches.map((m, i) => {
           const r = recFor(s.experts, i)
           const sel = s.rad[i]
@@ -348,34 +365,12 @@ export default function Rad() {
       </Card>
 
       <Card>
-        <h2 className="m-0 mb-2 text-[15px] font-bold">Så har strategierna presterat historiskt*</h2>
-        <div className="tbl-wrap">
-          <table className="tbl" style={{ minWidth: 640 }}>
-            <thead>
-              <tr>
-                <th>Strategi</th>
-                <th>Teckentäckning</th>
-                <th>Snitt rätt</th>
-                <th>13 rätt / 1000</th>
-                <th>Omgångar</th>
-                <th>Kommentar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {STRATEGY_PERF.map((r) => (
-                <tr key={r.name} className={r.best ? 'hl' : ''}>
-                  <td>{r.name}</td>
-                  <td>{r.tack}</td>
-                  <td>{r.ratt}</td>
-                  <td>{r.full}</td>
-                  <td>{r.omg}</td>
-                  <td className="!whitespace-normal">{r.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <Note className="mt-2">* Demodata i prototypen – fylls på när omgångar sparas i databasen.</Note>
+        <h2 className="m-0 mb-2 text-[15px] font-bold">Strategiernas historiska prestanda</h2>
+        <Note>
+          Mäts på riktigt när omgångar sparas i databasen: teckentäckning, snitt rätt och antal
+          fullträffar per strategi. Tabellen dyker upp här så fort de första omgångarna är rättade
+          och sparade.
+        </Note>
       </Card>
     </>
   )

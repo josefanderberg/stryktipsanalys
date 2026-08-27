@@ -1,11 +1,20 @@
 import { useApp } from '../store.jsx'
-import { ROUND, SIGNS, DEMO_EXPERTS, GAMES } from '../lib/data.js'
+import { ROUND, SIGNS, GAMES } from '../lib/data.js'
 import { allFilled, highlights, recFor, signStr } from '../lib/model.js'
 import { Card, Note, Cta, Summary } from '../components/ui.jsx'
 
 export default function Analys() {
-  const { s, set, show, toast } = useApp()
+  const { s, set, show } = useApp()
 
+  if (!s.fetched || !ROUND.matches) {
+    return (
+      <Card>
+        <h2 className="m-0 mb-2 text-[17px] font-bold">Kuponganalys</h2>
+        <Note>Hämta först omgången under <b>Start</b>.</Note>
+        <Cta tone="blue" onClick={() => show('start')}>Till start</Cta>
+      </Card>
+    )
+  }
   if (!allFilled(s.experts)) {
     return (
       <Card>
@@ -13,20 +22,6 @@ export default function Analys() {
         <Note>Alla {GAMES[s.game].experts} expertrader måste vara ifyllda innan kupongen kan analyseras.</Note>
         <Cta tone="blue" onClick={() => show('experter')}>
           Till expertraderna
-        </Cta>
-        <Cta
-          tone="gray"
-          onClick={() => {
-            set({
-              fetched: true,
-              experts: DEMO_EXPERTS.slice(0, GAMES[s.game].experts).map((e) => e.map((c) => c.slice())),
-              rad: null,
-              saved: false,
-            })
-            toast('Demorader ifyllda')
-          }}
-        >
-          Fyll i demorader och analysera
         </Cta>
       </Card>
     )

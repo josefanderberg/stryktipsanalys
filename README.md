@@ -1,51 +1,81 @@
 # Tipsanalys
 
-Mobilanpassad prototyp för ett analysverktyg för Stryktipset och Europatipset, byggd med
-**React + Vite + Tailwind CSS**. Innehåller även **NILLE-analysen** – en personlig analys av en
-inlagd rad (Rad → Analys → Min rad → Resultat) med topp 5 lägg till/ta bort, viktigaste
-tendensen och förbättrad rad inom samma systempris. Vald spelform används primärt; jämförbar
-historik från den andra spelformen visas som sekundär stödsignal i matchanalysen.
+Mobilanpassat analysverktyg för **Stryktipset** och **Europatipset**, byggt med React + Vite +
+Tailwind CSS. All data är riktig: omgångar hämtas från Svenska Spels öppna API och historiken
+byggs av era egna sparade omgångar i Firestore. Ingen demodata.
 
 **Live:** https://josefanderberg.github.io/stryktipsanalys/
 
-## Riktig data
+## Spelformer
 
-Omgångsdata (13 matcher, Svenska folket, odds) hämtas från **Svenska Spels öppna API** av
-`scripts/fetch-omgang.mjs`, som GitHub Actions kör vid varje deploy och enligt schema
-(var 6:e timme, tätare på lördagar). Resultatet hämtas samma väg när omgången är färdigspelad.
-Historiken och modellprocenten är däremot fortfarande demonstrationsvärden tills en riktig
-databas byggts upp. Inofficiell prototyp utan koppling till Svenska Spel.
+| | Stryktipset | Europatipset | NILLE |
+|---|---|---|---|
+| Expertrader | 6 | 3 | – |
+| Profilfärg | Blå | Grön | Lila |
+| Databas | `stryktipset` | `europatipset` | `nille` |
 
-## Flödet
+Valt spel används alltid primärt. Jämförbar historik från den andra spelformen används som
+sekundär stödsignal när underlaget är litet.
 
-1. **Ny omgång** – hämta omgångens 13 matcher med Svenska folket och oddsprocent från Svenska Spel.
-2. **Expertrad 1–6** – fyll i sex expertrader, en i taget, med klickbara 1/X/2-tecken (halv- och helgarderingar stöds).
-3. **Expertmönster** – raderna normaliseras per match så att ordningen på experterna räknas bort (t.ex. `1×2 · 1X×3 · X2×1`).
-4. **Differens** – Svenska folket jämförs med oddsprocenten per tecken; totaldifferensen placerar matchen i ett differensintervall.
-5. **Matchanalys** i fast ordning: experternas val → exakt mönster → **all historik för mönstret (baslinjen)** → dagens differens → historik uppdelad efter differensintervall (⭐ markerar dagens) → liknande mönster (sekundärt) → **modellbedömning** med underlag och tillförlitlighet → rekommendation.
-6. **Kuponganalys** – starkaste spik 🔥, bästa värdetecken 💎, sannolikaste skräll 💥, farlig favorit ⚠️, störst expertenighet 🤝 och expertoenighet ⚔️.
-7. **Min rad – strategijämförelse** – fyra strategier bygger var sin rad för samma budget: **★ Adaptiv** (rekommenderad, väljer starkaste signal per match), **◷ Historiskt mönster**, **◎ Mönster + differens** och **▥ Sammanvägd modell**. Jämförelsetabell med 🔥 där strategierna skiljer sig, konfliktkort med förklaringar, enighets­banner och historisk prestanda per strategi. Din egen rad utgår från den adaptiva och kan ändras tecken för tecken. Kupongvy + "Kopiera rad".
-8. **Resultat** – hämta/rätta resultat efter avslutad omgång och **spara i databasen** (13 nya datapunkter per omgång).
-9. **Databas** – sparade omgångar och därför värdet växer med tiden.
+## Huvudflödet
 
-## Viktigt
+1. **Start** – välj spel, hämta omgången (13 matcher, Svenska folket, odds → sannolikhetsprocent).
+   Odds och folkprocent som ännu inte publicerats visas som "–", aldrig som platshållarsiffror.
+2. **Experter** – fyll i expertraderna, en kupong i taget.
+3. **Analys** – kuponganalys (🔥 spik, 💎 värde, 💥 skräll, ⚠️ farlig favorit, 🤝/⚔️ enighet) och
+   per match: expertmönster → all historik → dagens differens → historik per differensintervall →
+   liknande mönster + korsstöd → modellbedömning → rekommendation.
+4. **Min rad** – 128 / 192 / 256 kr eller ⭐ Bästa reducerade (192 kr standard). Alla fyra
+   strategier byggs om till vald radstorlek; ★ Adaptiv är standard. Jämförelsetabell, konfliktkort
+   och kupongvy.
+5. **Resultat** – hämta resultat från Svenska Spel eller rätta manuellt, spara i databasen.
 
-Procent och historik i prototypen är **demonstrationsvärden** och ska inte ses som kalibrerade vinstsannolikheter. Modellens vikter är prototypvärden som ska kalibreras mot verkliga resultat när databasen växer.
+## NILLE-analysen
+
+Rad → Analys → Min rad → Resultat. Kupongöversikt med sex signaler, klickbar matchlista med
+rekommenderat tecken och modellprocent, detaljpanel per match (riskbadge SER BRA UT /
+KONTROLLERA / NILLE-FÄLLA, marknadsdata, modellbedömning, motivering), Topp 5 lägg till/ta bort,
+samt jämförelse mellan Nilles rad och rekommenderad rad per budget och strategi.
+
+## Modellen
+
+Modellprocenten viktas efter hur stort underlaget faktiskt är:
+
+| Signal | Max vikt | Full vikt vid |
+|---|---|---|
+| Mönster + dagens differens | 40 % | 30 matcher |
+| Exakt expertmönster | 20 % | 20 matcher |
+| Liknande mönster | 15 % | 20 matcher |
+| Stöd från andra spelformen | 10 % | 20 matcher |
+| Oddsprocent | resten | – |
+
+Med tom databas är modellen alltså identisk med marknaden, och det redovisas öppet i varje
+matchanalys. Ju fler omgångar ni sparar, desto större vikt får er egen historik.
+
+## Data och lagring
+
+- **Omgångsdata:** `scripts/fetch-omgang.mjs` hämtar båda spelen från Svenska Spels öppna API och
+  skriver `public/data/<spel>.json`. Körs av GitHub Actions vid varje deploy och enligt schema
+  (var 6:e timme, tätare på lördagar).
+- **Sparade omgångar:** Firestore i Firebase-projektet `hejy-5dac4`, tre samlingar
+  (`stryktipset`, `europatipset`, `nille`). Per match sparas datum, match, expertrader,
+  normaliserat expertmönster, Svenska folket, oddsprocent, differens, differensintervall,
+  faktiskt resultat och din rad. Regler i `firestore.rules`.
 
 ## Utveckling
 
 ```bash
 npm install
-npm run dev      # dev-server på http://localhost:5173/stryktipsanalys/
-npm run build    # produktionsbygge till dist/
+npm run dev      # http://localhost:5173/stryktipsanalys/
+npm run build
+node scripts/fetch-omgang.mjs   # uppdatera omgångsdata lokalt
 ```
-
-## Publicering
-
-Varje push till `main` bygger och deployar automatiskt till GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`).
 
 ## Nästa steg
 
-- Riktig databas i backend i stället för demogenererad historik.
-- Statistisk kalibrering av modellens vikter mot verkliga utfall.
-- Systembyggare som optimerar radbygget mot vald budget.
+- Riktig reduceringsmotor bakom ⭐ Bästa reducerade.
+- Strategiernas historiska prestanda beräknad ur sparade omgångar.
+- Kalibrering av modellens vikter mot verkliga utfall när databasen vuxit.
+- Inloggning om databasen ska skyddas mot utomstående skrivningar.
+
+Inofficiell prototyp utan koppling till Svenska Spel.

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useApp } from './store.jsx'
 import { ROUND } from './lib/data.js'
 import { allFilled, expertFilled } from './lib/model.js'
@@ -56,7 +57,7 @@ function Steps() {
 }
 
 function BottomBar() {
-  const { s, show, set, toast, newRound, saveRound } = useApp()
+  const { s, show, set, toast, newRound, saveRound, saveNille } = useApp()
   const btn = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-go text-white disabled:bg-[#c8d2da] disabled:text-[#f2f5f7]'
   const sec = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-[#e7eef5] text-[#153b61]'
   const filled = allFilled(s.experts)
@@ -122,17 +123,20 @@ function BottomBar() {
       </>
     )
   } else if (s.view === 'nille') {
-    const nilleBtn = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-[#6d35c5] text-white'
+    const nilleBtn = 'flex-1 border-0 rounded-[9px] px-2 py-3 font-bold text-[13.5px] bg-[#6d35c5] text-white disabled:bg-[#c8d2da] disabled:text-[#f2f5f7]'
     const step = s.nille.step
     const labels = ['Analysera raden ›', 'Bygg min rad ›', 'Spara rad ›', 'Ny NILLE-analys']
+    const radComplete = s.nille.rad.every((r) => r.length > 0)
     content = (
       <>
         <button className={sec} onClick={() => show('start')}>‹ Start</button>
         <button
           className={nilleBtn}
+          disabled={step === 0 && !radComplete}
           onClick={() => {
+            if (step === 2) saveNille()
             set((prev) => ({
-              nille: { ...prev.nille, step: step === 3 ? 0 : step + 1 },
+              nille: { ...prev.nille, step: step === 3 ? 0 : step + 1, ...(step === 3 ? { rad: prev.nille.rad, saved: false } : {}) },
             }))
             window.scrollTo(0, 0)
           }}
@@ -190,6 +194,9 @@ const VIEW_MAP = {
 export default function App() {
   const { s } = useApp()
   const View = VIEW_MAP[s.view] || Start
+  useEffect(() => {
+    document.body.dataset.game = s.game
+  }, [s.game])
   return (
     <>
       <header className="bg-navy text-white px-3.5 pt-4 pb-3 sticky top-0 z-20">

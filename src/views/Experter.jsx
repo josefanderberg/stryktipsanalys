@@ -1,12 +1,12 @@
 import { useApp } from '../store.jsx'
-import { ROUND, DEMO_EXPERTS, SIGNS, GAMES } from '../lib/data.js'
+import { ROUND, SIGNS, GAMES } from '../lib/data.js'
 import { expertFilled, filledCount } from '../lib/model.js'
-import { Card, Note, Cta, DetailBtn, Coupon, CouponRow } from '../components/ui.jsx'
+import { Card, Note, Cta, Coupon, CouponRow } from '../components/ui.jsx'
 
 export default function Experter() {
-  const { s, set, show, toast } = useApp()
+  const { s, set, show } = useApp()
 
-  if (!s.fetched) {
+  if (!s.fetched || !ROUND.matches) {
     return (
       <Card>
         <h2 className="m-0 mb-2 text-[17px] font-bold">Expertrader</h2>
@@ -35,15 +35,6 @@ export default function Experter() {
       )
       return { experts, rad: null, saved: false }
     })
-  }
-
-  const fillDemo = () => {
-    set({
-      experts: DEMO_EXPERTS.slice(0, GAMES[s.game].experts).map((e) => e.map((c) => c.slice())),
-      rad: null,
-      saved: false,
-    })
-    toast('Demorader ifyllda')
   }
 
   return (
@@ -82,7 +73,6 @@ export default function Experter() {
         ))}
       </Coupon>
 
-      <DetailBtn onClick={fillDemo}>Fyll i demorader (för att testa flödet)</DetailBtn>
       <Note className="mt-2">
         Klicka i tecknen från expertens rad – enkel, halvgarderad (t.ex. 1X) eller helgarderad
         (1X2). Ordningen på experterna spelar ingen roll: systemet räknar om raderna till ett

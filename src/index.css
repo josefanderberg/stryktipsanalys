@@ -17,6 +17,12 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Beslutad färgprofil: Stryktipset blå (standard), Europatipset grön.
+   Allt som använder royal-färgen följer automatiskt valt spel. */
+body[data-game='europatipset'] {
+  --color-royal: #2f7f4a;
+}
+
 body {
   margin: 0;
   background: var(--color-paper);

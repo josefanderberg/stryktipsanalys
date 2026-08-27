@@ -1,34 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useApp } from '../store.jsx'
 import { ROUND, SIGNS } from '../lib/data.js'
 import {
   allFilled, comboKey, diffOf, modelFor, recFor, relStars, signStr, starStr,
-  signalsFor, adaptiveChoice, signsFromDist,
+  signalsFor, adaptiveChoice, signsFromDist, matchWord,
 } from '../lib/model.js'
-import { Card, SecTitle, Note, Chip, Cta, DetailBtn, Track } from '../components/ui.jsx'
+import { Card, SecTitle, Note, Chip, Cta, Track } from '../components/ui.jsx'
+
+const pOr = (p) => (p ? p.map((x) => `${x}%`) : ['–', '–', '–'])
 
 export default function MatchDetail() {
   const { s, set, show } = useApp()
-  const [showSim, setShowSim] = useState(false)
-  const [showHist, setShowHist] = useState(false)
 
-  const filled = allFilled(s.experts)
+  const ready = s.fetched && ROUND.matches && allFilled(s.experts)
   useEffect(() => {
-    if (!filled) show('analys')
-  }, [filled]) // eslint-disable-line react-hooks/exhaustive-deps
-  if (!filled) return null
+    if (!ready) show('analys')
+  }, [ready]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ready) return null
 
   const mi = s.detail
   const m = ROUND.matches[mi]
   const d = diffOf(mi)
   const { score, iv, ih, h, weights } = modelFor(s.experts, mi)
   const r = recFor(s.experts, mi)
+  const sig = signalsFor(s.experts, mi)
+  const src = adaptiveChoice(s.experts, mi)
   const rel = relStars(ih.n)
 
   const openMatch = (i) => {
     set({ detail: i })
-    setShowSim(false)
-    setShowHist(false)
     window.scrollTo(0, 0)
   }
 
@@ -61,64 +61,69 @@ export default function MatchDetail() {
       <Card>
         <SecTitle>Snabböversikt – fem signaler</SecTitle>
         <div className="grid grid-cols-2 gap-2">
-          {(() => {
-            const sig = signalsFor(s.experts, mi)
-            return [
-              { t: 'Exakt expertmönster', d: sig.hist, sub: `${sig.hist.n} historiska matcher` },
-              { t: 'Exakt mönster + dagens diff ⭐', d: sig.diff, sub: `${sig.diff.n} matcher i dagens intervall`, star: true },
-              { t: 'Liknande mönster', d: sig.sim, sub: `${sig.sim.n} matcher` },
-              { t: `↔ ${sig.cross.label}`, d: sig.cross, sub: `${sig.cross.n} matcher · sekundärt stöd`, cross: true },
-              { t: 'Sammanvägd modell', d: sig.model, sub: 'Viktad sammanvägning', wide: true },
-            ].map((b) => (
-              <div
-                key={b.t}
-                className={`rounded-[11px] border p-2.5 ${b.wide ? 'col-span-2 ' : ''}${
-                  b.star
-                    ? 'border-[#f4bb42] bg-[#fffdf7]'
-                    : b.cross
-                      ? 'border-[#cdbbea] bg-[#f9f6ff]'
-                      : 'border-line bg-white'
-                }`}
-              >
-                <h3 className="m-0 mb-2 text-[12px] font-bold leading-snug">{b.t}</h3>
-                <div className="grid grid-cols-3 gap-1 text-center">
-                  {[0, 1, 2].map((k) => (
-                    <div key={k}>
-                      <b className="block text-[17px]">{b.d.p[k]}%</b>
-                      <span className="text-[11px] text-muted">{SIGNS[k]}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-1.5 text-[10.5px] text-muted">{b.sub}</div>
+          {[
+            { t: 'Exakt expertmönster', d: sig.hist, sub: `${sig.hist.n} ${matchWord(sig.hist.n)} i databasen` },
+            { t: 'Exakt mönster + dagens diff ⭐', d: sig.diff, sub: `${sig.diff.n} ${matchWord(sig.diff.n)} i dagens intervall`, star: true },
+            { t: 'Liknande mönster', d: sig.sim, sub: `${sig.sim.n} ${matchWord(sig.sim.n)}` },
+            { t: `↔ ${sig.cross.label}`, d: sig.cross, sub: `${sig.cross.n} ${matchWord(sig.cross.n)} · sekundärt stöd`, cross: true },
+            { t: 'Sammanvägd modell', d: sig.model, sub: 'Viktad sammanvägning', wide: true },
+          ].map((b) => (
+            <div
+              key={b.t}
+              className={`rounded-[11px] border p-2.5 ${b.wide ? 'col-span-2 ' : ''}${
+                b.star
+                  ? 'border-[#f4bb42] bg-[#fffdf7]'
+                  : b.cross
+                    ? 'border-[#cdbbea] bg-[#f9f6ff]'
+                    : 'border-line bg-white'
+              }`}
+            >
+              <h3 className="m-0 mb-2 text-[12px] font-bold leading-snug">{b.t}</h3>
+              <div className="grid grid-cols-3 gap-1 text-center">
+                {pOr(b.d.p).map((v, k) => (
+                  <div key={k}>
+                    <b className="block text-[17px]">{v}</b>
+                    <span className="text-[11px] text-muted">{SIGNS[k]}</span>
+                  </div>
+                ))}
               </div>
-            ))
-          })()}
-        </div>
-        {(() => {
-          const src = adaptiveChoice(s.experts, mi)
-          return (
-            <div className="mt-2.5 rounded-[10px] bg-[#eaf7ee] text-[#1e6b3b] font-bold p-3 text-[13px] leading-relaxed">
-              ★ Adaptiv rekommendation: {signStr(signsFromDist(src.p))}
-              <br />
-              <span className="font-normal text-[12px]">{src.label} har starkast stöd för den här matchen.</span>
+              <div className="mt-1.5 text-[10.5px] text-muted">{b.sub}</div>
             </div>
-          )
-        })()}
+          ))}
+        </div>
+        <div className="mt-2.5 rounded-[10px] bg-[#eaf7ee] text-[#1e6b3b] font-bold p-3 text-[13px] leading-relaxed">
+          ★ Adaptiv rekommendation: {signStr(signsFromDist(src.p))}
+          <br />
+          <span className="font-normal text-[12px]">
+            {src.key === 'model' && !h.base
+              ? 'Underlag saknas ännu – bedömningen bygger på odds och differens.'
+              : `${src.label} har starkast stöd för den här matchen.`}
+          </span>
+        </div>
       </Card>
 
       <Card>
         <SecTitle>3 · All historik för mönstret</SecTitle>
-        <p className="m-0 mb-1">
-          <b>{h.total} tidigare matcher</b>{' '}
-          <span className="text-[11px] text-muted">– baslinjen innan differensen vägs in</span>
-        </p>
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="grid grid-cols-[20px_1fr_46px] gap-2 items-center my-[7px] font-bold">
-            <span>{SIGNS[i]}</span>
-            <Track pct={h.base[i]} />
-            <b>{h.base[i]}%</b>
-          </div>
-        ))}
+        {h.total > 0 ? (
+          <>
+            <p className="m-0 mb-1">
+              <b>{h.total} sparad{h.total === 1 ? '' : 'e'} {matchWord(h.total)}</b>{' '}
+              <span className="text-[11px] text-muted">– baslinjen innan differensen vägs in</span>
+            </p>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="grid grid-cols-[20px_1fr_46px] gap-2 items-center my-[7px] font-bold">
+                <span>{SIGNS[i]}</span>
+                <Track pct={h.base[i]} />
+                <b>{h.base[i]}%</b>
+              </div>
+            ))}
+          </>
+        ) : (
+          <Note>
+            Mönstret <b>{h.pattern}</b> finns inte i databasen ännu. Varje sparad omgång ger 13 nya
+            matcher – underlaget byggs upp omgång för omgång.
+          </Note>
+        )}
       </Card>
 
       <Card>
@@ -140,70 +145,68 @@ export default function MatchDetail() {
 
       <Card>
         <SecTitle>5 · Historik för mönstret, uppdelad efter differens</SecTitle>
-        <div className="tbl-wrap"><table className="tbl">
-          <thead>
-            <tr><th>Differens</th><th>Matcher</th><th>1</th><th>X</th><th>2</th></tr>
-          </thead>
-          <tbody>
-            {h.intervals.filter((x) => x.n > 0).map((x) => (
-              <tr key={x.label} className={x.label === iv ? 'hl' : ''}>
-                <td>{x.label === iv ? '⭐ ' : ''}{x.label}</td>
-                <td>{x.n}</td>
-                {x.p.map((p, i) => <td key={i}>{p}%</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-        <Note className="mt-2">
-          ⭐ Dagens match ligger här. Generellt ger mönstret {h.base[0]}/{h.base[1]}/{h.base[2]} –
-          inom dagens differensintervall har utfallet historiskt varit {ih.p[0]}/{ih.p[1]}/{ih.p[2]}{' '}
-          ({ih.n} matcher).
-        </Note>
-      </Card>
-
-      <Card>
-        <SecTitle>6 · Liknande expertmönster (sekundärt underlag)</SecTitle>
-        <DetailBtn onClick={() => setShowSim(!showSim)}>
-          {showSim ? 'Dölj liknande mönster' : 'Visa liknande mönster'}
-        </DetailBtn>
-        {showSim && (
+        {h.intervals.some((x) => x.n > 0) ? (
           <>
-            <div className="tbl-wrap mt-2"><table className="tbl">
+            <div className="tbl-wrap"><table className="tbl">
               <thead>
-                <tr><th>Likhet</th><th>Matcher</th><th>1</th><th>X</th><th>2</th></tr>
+                <tr><th>Differens</th><th>Matcher</th><th>1</th><th>X</th><th>2</th></tr>
               </thead>
               <tbody>
-                {h.sim.map((x) => (
-                  <tr key={x.label}>
-                    <td>{x.label}</td>
+                {h.intervals.filter((x) => x.n > 0 || x.label === iv).map((x) => (
+                  <tr key={x.label} className={x.label === iv ? 'hl' : ''}>
+                    <td>{x.label === iv ? '⭐ ' : ''}{x.label}</td>
                     <td>{x.n}</td>
-                    {x.p.map((p, i) => <td key={i}>{p}%</td>)}
+                    {pOr(x.p).map((p, i) => <td key={i}>{p}</td>)}
                   </tr>
                 ))}
               </tbody>
             </table></div>
-            <Note className="mt-2">
-              Används främst när underlaget för det exakta mönstret är litet. Exakt mönster väger
-              alltid tyngre än liknande mönster.
-            </Note>
+            <Note className="mt-2">⭐ Dagens match ligger i intervall {iv} ({ih.n} {matchWord(ih.n)} i underlaget).</Note>
           </>
+        ) : (
+          <Note>Ingen historik för mönstret i något differensintervall ännu.</Note>
         )}
-        <DetailBtn onClick={() => setShowHist(!showHist)}>
-          {showHist ? 'Dölj historiska matcher' : 'Visa historiska matcher'}
-        </DetailBtn>
-        {showHist && (
-          <div className="tbl-wrap mt-2"><table className="tbl">
-            <thead>
-              <tr><th>Datum</th><th>Likhet</th><th>Diff</th><th>Resultat</th></tr>
-            </thead>
-            <tbody>
-              {h.samples.map((x, i) => (
-                <tr key={i}>
-                  <td>{x.datum}</td><td>{x.lik}</td><td>{x.diff}</td><td><b>{x.res}</b></td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
+      </Card>
+
+      <Card>
+        <SecTitle>6 · Liknande mönster & stöd från {ROUND.game === 'stryktipset' ? 'Europatipset' : 'Stryktipset'}</SecTitle>
+        <div className="tbl-wrap"><table className="tbl">
+          <thead>
+            <tr><th>Underlag</th><th>Matcher</th><th>1</th><th>X</th><th>2</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Liknande mönster (≥ ⅔ likhet)</td>
+              <td>{sig.sim.n}</td>
+              {pOr(sig.sim.p).map((p, i) => <td key={i}>{p}</td>)}
+            </tr>
+            <tr>
+              <td>↔ {sig.cross.label}, intervall {iv}</td>
+              <td>{sig.cross.n}</td>
+              {pOr(sig.cross.p).map((p, i) => <td key={i}>{p}</td>)}
+            </tr>
+          </tbody>
+        </table></div>
+        <Note className="mt-2">
+          Sekundära underlag som väger lätt i modellen och främst används när det exakta mönstret
+          har få matcher.
+        </Note>
+        {h.samples.length > 0 && (
+          <>
+            <SecTitle className="mt-3">Senaste matcherna med mönstret</SecTitle>
+            <div className="tbl-wrap"><table className="tbl">
+              <thead>
+                <tr><th>Datum</th><th>Intervall</th><th>Resultat</th></tr>
+              </thead>
+              <tbody>
+                {h.samples.map((x, i) => (
+                  <tr key={i}>
+                    <td>{x.datum}</td><td>{x.diff}</td><td><b>{x.res}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </>
         )}
       </Card>
 
@@ -232,29 +235,27 @@ export default function MatchDetail() {
             )
           })}
           <div className="mt-3 pt-2.5 border-t border-[#3b4650] text-[11.5px] leading-[1.7] text-[#c5cdd4]">
-            <b className="text-white">Underlag:</b> {ih.n} matcher i dagens differensintervall ·{' '}
+            <b className="text-white">Underlag:</b> {ih.n} {matchWord(ih.n)} i dagens differensintervall ·{' '}
             <b className="text-white">Tillförlitlighet:</b> {starStr(rel)}
             <br />
             <br />
             <b className="text-white">Varför?</b>
             <br />
-            ✓ Historik inom dagens differens ({ih.n} matcher): {ih.p[0]}/{ih.p[1]}/{ih.p[2]} – vikt{' '}
-            {Math.round(weights.wD * 100)}%
+            {weights.parts.map((p) => (
+              <span key={p.key}>
+                ✓ {p.label} ({p.n} {matchWord(p.n)}): {p.p.join('/')} – vikt {Math.round(p.w * 100)}%
+                <br />
+              </span>
+            ))}
+            ✓ Oddsprocent: {m.odds.join('/')} – vikt {Math.round(weights.wO * 100)}%
             <br />
-            ✓ Generellt expertmönster ({h.total} matcher): {h.base[0]}/{h.base[1]}/{h.base[2]} – vikt{' '}
-            {Math.round(weights.wB * 100)}%
-            <br />
-            ✓ Liknande mönster 90 %+ ({h.sim[2].n} matcher): vikt {Math.round(weights.wS * 100)}%
-            <br />
-            ✓ Oddsprocent: {m.odds[0]}/{m.odds[1]}/{m.odds[2]} – vikt {Math.round(weights.wO * 100)}%
-            <br />
-            ✓ Svenska folket: {m.folk[0]}/{m.folk[1]}/{m.folk[2]}
-            {m.folk[r.ord[0]] - score[r.ord[0]] > 8 ? ' – toppentecknet ser överstreckat ut' : ''}
+            ✓ Svenska folket: {m.folk.join('/')}
             <br />
             <br />
             <span className="opacity-80">
-              Vikterna är prototypvärden. När databasen växer ska de kalibreras mot vad som faktiskt
-              förutsäger resultat.
+              {weights.parts.length === 0
+                ? 'Databasen saknar ännu matchande historik – bedömningen är just nu marknadens. Spara omgångar så växer modellens egen vikt.'
+                : 'Historikens vikt växer automatiskt med underlagets storlek.'}
             </span>
           </div>
         </div>
