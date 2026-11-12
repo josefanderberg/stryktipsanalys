@@ -69,6 +69,46 @@ export const setHistory = (h) => {
 export const historyReady = () => HISTORY.loaded
 export const historyCount = (game) => (HISTORY[game] || []).length
 
+// Sparade omgångar → de matchposter modellen räknar på
+export const flattenRounds = (rounds, game) =>
+  rounds.flatMap((r) =>
+    (r.matchdata || []).map((m) => ({
+      game,
+      datum: r.date || '',
+      monster: m.monster || '',
+      intervall: m.intervall || '',
+      resultat: m.resultat,
+      folk: m.folk,
+      odds: m.odds,
+    })),
+  )
+
+// Modellbedömningar per expertuppsättning, sparade så länge withContext körs.
+// Omgång och historik ligger då fast, så varje match behöver bara räknas en gång.
+let MEMO = null
+
+// Kör fn mot en annan omgång och historik utan att röra appens aktuella läge.
+// Används när sparade omgångar spelas om i efterhand (Statistik).
+export function withContext(round, history, fn) {
+  const savedRound = { ...ROUND }
+  const savedHistory = HISTORY
+  const savedMemo = MEMO
+  MEMO = new Map()
+  Object.assign(ROUND, round)
+  HISTORY = {
+    stryktipset: history.stryktipset || [],
+    europatipset: history.europatipset || [],
+    loaded: true,
+  }
+  try {
+    return fn()
+  } finally {
+    Object.assign(ROUND, savedRound)
+    HISTORY = savedHistory
+    MEMO = savedMemo
+  }
+}
+
 // Utfallsfördelning för ett urval sparade matcher – null när underlag saknas
 function dist(entries) {
   if (!entries.length) return null
@@ -134,6 +174,13 @@ export function historyFor(experts, mi) {
 // Vikterna skalas med underlagets storlek; det som saknas i historik
 // bärs av oddsprocenten. Tom databas ⇒ modellen = marknaden.
 export function modelFor(experts, mi) {
+  if (!MEMO) return computeModel(experts, mi)
+  let per = MEMO.get(experts)
+  if (!per) MEMO.set(experts, (per = []))
+  return (per[mi] ||= computeModel(experts, mi))
+}
+
+function computeModel(experts, mi) {
   const h = historyFor(experts, mi)
   const m = ROUND.matches[mi]
   const parts = [

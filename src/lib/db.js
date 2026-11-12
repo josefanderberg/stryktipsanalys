@@ -6,6 +6,7 @@ import { initializeApp } from 'firebase/app'
 import {
   getFirestore, collection, doc, setDoc, getDocs, query, orderBy, limit,
 } from 'firebase/firestore'
+import { flattenRounds } from './model.js'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCbhJNsZAe1FJytUebXIaK6ps7nnfTe6v0',
@@ -31,21 +32,9 @@ export async function loadCol(col) {
 // Historiken som modellen räknar på: alla sparade matcher per spelform.
 export async function loadAllHistory() {
   const [stryk, euro] = await Promise.all([loadCol('stryktipset'), loadCol('europatipset')])
-  const flat = (rounds, game) =>
-    rounds.flatMap((r) =>
-      (r.matchdata || []).map((m) => ({
-        game,
-        datum: r.date || '',
-        monster: m.monster || '',
-        intervall: m.intervall || '',
-        resultat: m.resultat,
-        folk: m.folk,
-        odds: m.odds,
-      })),
-    )
   return {
-    stryktipset: flat(stryk, 'stryktipset'),
-    europatipset: flat(euro, 'europatipset'),
+    stryktipset: flattenRounds(stryk, 'stryktipset'),
+    europatipset: flattenRounds(euro, 'europatipset'),
     rounds: { stryktipset: stryk, europatipset: euro },
   }
 }
