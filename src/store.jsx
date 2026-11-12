@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { emptyExperts, emptyRad, setRound, resetRound, GAMES, ROUND, SIGNS } from './lib/data.js'
 import { patternOf, diffOf, intervalOf, signStr, comboKey, setHistory } from './lib/model.js'
 
-const VIEWS = ['start', 'experter', 'analys', 'match', 'rad', 'resultat', 'databas', 'nille']
+const VIEWS = ['start', 'experter', 'analys', 'match', 'rad', 'resultat', 'databas', 'nille', 'statistik']
 
 const defaultState = (game = 'stryktipset') => ({
   view: 'start',

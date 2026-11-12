@@ -29,6 +29,7 @@ sekundär stödsignal när underlaget är litet.
    strategier byggs om till vald radstorlek; ★ Adaptiv är standard och bygger exakt systemform.
    Jämförelsetabell, konfliktkort och kupongvy.
 5. **Resultat** – hämta resultat från Svenska Spel eller rätta manuellt, spara i databasen.
+6. **Statistik** – facit för strategierna över alla sparade omgångar.
 
 ## NILLE-analysen
 
@@ -36,6 +37,23 @@ Rad → Analys → Min rad → Resultat. Kupongöversikt med sex signaler, klick
 rekommenderat tecken och modellprocent, detaljpanel per match (riskbadge SER BRA UT /
 KONTROLLERA / NILLE-FÄLLA, marknadsdata, modellbedömning, motivering), Topp 5 lägg till/ta bort,
 samt jämförelse mellan Nilles rad och rekommenderad rad per budget och strategi.
+
+## Statistik
+
+Fliken **Statistik** visar hur strategierna faktiskt har gått i de sparade omgångarna, filtrerat
+på spelform och radstorlek (128 / 192 / 256 kr):
+
+- snitt antal rätt per omgång för ★ Adaptiv, Historiskt mönster, Mönster + differens och
+  Sammanvägd modell, jämfört med en ren oddsrad, den sparade raden och Nilles rad,
+- antal omgångar med 10+, 11+, 12 och 13 rätt,
+- första halvan mot senaste, med andelen matcher som hade historik för expertmönstret,
+- var felen uppstår för modellraden och Nilles rader: per teckenval, oddsprocent, differens och
+  faktiskt utfall,
+- alla omgångar rad för rad.
+
+Strategiernas rader sparas inte i databasen. Varje omgång spelas därför om
+(`src/lib/backtest.js`) med enbart de omgångar som var sparade före spelstopp, alltså samma
+underlag som appen hade när raden byggdes. Antal rätt är den bästa raden i systemet.
 
 ## Systembygge och R-system
 
@@ -94,7 +112,6 @@ node scripts/fetch-omgang.mjs   # uppdatera omgångsdata lokalt
 
 ## Nästa steg
 
-- Strategiernas historiska prestanda beräknad ur sparade omgångar.
 - Kalibrering av modellens vikter mot verkliga utfall när databasen vuxit.
 - Inloggning om databasen ska skyddas mot utomstående skrivningar.
 

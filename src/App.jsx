@@ -10,6 +10,7 @@ import Rad from './views/Rad.jsx'
 import Resultat from './views/Resultat.jsx'
 import Databas from './views/Databas.jsx'
 import Nille from './views/Nille.jsx'
+import Statistik from './views/Statistik.jsx'
 
 const STEPS = [
   { id: 'start', label: '1 · Start' },
@@ -19,6 +20,7 @@ const STEPS = [
   { id: 'resultat', label: '5 · Resultat' },
   { id: 'nille', label: 'NILLE' },
   { id: 'databas', label: 'Databas' },
+  { id: 'statistik', label: 'Statistik' },
 ]
 
 function Steps() {
@@ -151,6 +153,13 @@ function BottomBar() {
         </button>
       </>
     )
+  } else if (s.view === 'statistik') {
+    content = (
+      <>
+        <button className={sec} onClick={() => show('databas')}>‹ Databas</button>
+        <button className={btn} onClick={() => show('start')}>Till start</button>
+      </>
+    )
   } else {
     content = (
       <>
@@ -195,6 +204,7 @@ const VIEW_MAP = {
   resultat: Resultat,
   databas: Databas,
   nille: Nille,
+  statistik: Statistik,
 }
 
 export default function App() {
